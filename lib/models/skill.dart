@@ -22,6 +22,12 @@ class Skill {
   /// How many times this skill replayed successfully.
   int successCount;
 
+  /// Consecutive failure count before this skill is retired or relearned.
+  int failureCount;
+
+  /// Contextual rules/heuristics learned over multiple runs.
+  final List<String> learnedRules;
+
   DateTime lastUsedAt;
   final DateTime createdAt;
 
@@ -30,10 +36,13 @@ class Skill {
     required this.goal,
     required this.steps,
     this.successCount = 0,
+    this.failureCount = 0,
+    List<String>? learnedRules,
     DateTime? lastUsedAt,
     DateTime? createdAt,
   })  : id = id ?? _uuid.v4(),
         normalizedGoal = normalize(goal),
+        learnedRules = learnedRules ?? [],
         lastUsedAt = lastUsedAt ?? DateTime.now(),
         createdAt = createdAt ?? DateTime.now();
 
@@ -60,6 +69,8 @@ class Skill {
         'goal': goal,
         'steps': steps.map((s) => s.toJson()).toList(),
         'successCount': successCount,
+        'failureCount': failureCount,
+        'learnedRules': learnedRules,
         'lastUsedAt': lastUsedAt.toIso8601String(),
         'createdAt': createdAt.toIso8601String(),
       };
@@ -77,6 +88,12 @@ class Skill {
         successCount: json['successCount'] is int
             ? json['successCount'] as int
             : int.tryParse('${json['successCount']}') ?? 0,
+        failureCount: json['failureCount'] is int
+            ? json['failureCount'] as int
+            : int.tryParse('${json['failureCount']}') ?? 0,
+        learnedRules: json['learnedRules'] is List
+            ? (json['learnedRules'] as List).map((e) => '$e').toList()
+            : null,
         lastUsedAt: DateTime.tryParse(json['lastUsedAt']?.toString() ?? ''),
         createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       );

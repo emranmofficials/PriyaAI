@@ -20,6 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _modelController;
   late final TextEditingController _tokenController;
   late final TextEditingController _chatsController;
+  late final TextEditingController _ownerPhraseController;
 
   bool _obscureKey = true;
   bool _obscureToken = true;
@@ -29,6 +30,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// user tapped a different provider chip) — never on unrelated updates,
   /// which would wipe unsaved edits.
   String _lastSyncedProvider = '';
+  List<String> _ollamaModels = const [];
+  bool _loadingOllamaModels = false;
+
+  Future<void> _checkOllamaModels() async {
+    if (!mounted) return;
+    setState(() => _loadingOllamaModels = true);
+    final models = await _settings.fetchOllamaModels(
+      customBaseUrl: _baseUrlController.text,
+    );
+    if (!mounted) return;
+    setState(() {
+      _ollamaModels = models;
+      _loadingOllamaModels = false;
+    });
+  }
 
   @override
   void initState() {
@@ -39,6 +55,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _tokenController = TextEditingController(text: _settings.telegramToken);
     _chatsController =
         TextEditingController(text: _settings.telegramAllowedChats.join(', '));
+    _ownerPhraseController =
+        TextEditingController(text: _settings.ownerSecretPhrase);
     _lastSyncedProvider = _settings.provider;
     // Rebuild so the Save button's enabled state tracks unsaved edits.
     for (final c in [
@@ -50,6 +68,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     _settings.addListener(_onSettingsChanged);
     _telegram.addListener(_onTelegramChanged);
+
+    if (_settings.provider.contains('ollama') || _settings.baseUrl.contains('11434')) {
+      _checkOllamaModels();
+    }
   }
 
   @override
@@ -68,6 +90,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _modelController.dispose();
     _tokenController.dispose();
     _chatsController.dispose();
+    _ownerPhraseController.dispose();
     super.dispose();
   }
 
@@ -80,6 +103,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _lastSyncedProvider = _settings.provider;
       _baseUrlController.text = _settings.baseUrl;
       _modelController.text = _settings.model;
+      if (_settings.provider.contains('ollama')) {
+        _checkOllamaModels();
+      }
     }
     setState(() {});
   }
@@ -171,6 +197,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
               ],
             ),
+            if (_settings.provider.contains('ollama') || _baseUrlController.text.contains('11434')) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.35),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.25),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.bolt, size: 20, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Local Ollama (Termux / 100% Offline)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                        if (_loadingOllamaModels)
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else
+                          IconButton(
+                            icon: const Icon(Icons.refresh, size: 18),
+                            tooltip: 'Detect Installed Models',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: _checkOllamaModels,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'No API key required! Runs offline on your phone via Termux ("ollama serve").',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    if (_ollamaModels.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Detected Models (Tap to use):',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final m in _ollamaModels)
+                            ActionChip(
+                              avatar: Icon(
+                                _modelController.text == m
+                                    ? Icons.check_circle
+                                    : Icons.smart_toy_outlined,
+                                size: 16,
+                              ),
+                              label: Text(m, style: const TextStyle(fontSize: 12)),
+                              onPressed: () {
+                                _modelController.text = m;
+                                setState(() {});
+                              },
+                            ),
+                        ],
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 6),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                        icon: const Icon(Icons.search, size: 16),
+                        label: const Text('Detect models on 127.0.0.1:11434', style: TextStyle(fontSize: 12)),
+                        onPressed: _checkOllamaModels,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: _baseUrlController,
@@ -187,7 +298,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               controller: _apiKeyController,
               obscureText: _obscureKey,
               decoration: InputDecoration(
-                labelText: 'API key',
+                labelText: (_settings.provider.contains('ollama') || _baseUrlController.text.contains('11434'))
+                    ? 'API key (Not needed for Ollama)'
+                    : 'API key',
+                hintText: (_settings.provider.contains('ollama') || _baseUrlController.text.contains('11434'))
+                    ? 'Leave empty for local Ollama'
+                    : null,
                 prefixIcon: const Icon(Icons.vpn_key_outlined),
                 suffixIcon: IconButton(
                   icon: Icon(_obscureKey
@@ -201,10 +317,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _modelController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Model',
-                hintText: 'deepseek-chat',
-                prefixIcon: Icon(Icons.psychology_outlined),
+                hintText: _settings.provider.contains('ollama') ? 'qwen2.5:0.5b' : 'deepseek-chat',
+                prefixIcon: const Icon(Icons.psychology_outlined),
               ),
             ),
             const SizedBox(height: 12),
@@ -333,6 +449,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              title: const Text('Hermes persistent memory',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text(
+                  'Learn user preferences, device facts & recovery patterns',
+                  style: TextStyle(fontSize: 12)),
+              value: _settings.hermesMemoryEnabled,
+              onChanged: (v) => _settings.setHermesMemoryEnabled(v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
               title: const Text('Voice feedback',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               subtitle: const Text('Speak task results aloud',
@@ -340,6 +466,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: _settings.voiceFeedback,
               onChanged: (v) => _settings.setVoiceFeedback(v),
             ),
+            const Divider(height: 16),
+            Row(
+              children: [
+                const Text('Voice language / ভাষা',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const Spacer(),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'bn-BD', label: Text('বাংলা')),
+                    ButtonSegment(value: 'en-US', label: Text('English')),
+                  ],
+                  selected: {_settings.voiceLanguage},
+                  onSelectionChanged: (set) =>
+                      _settings.setVoiceLanguage(set.first),
+                ),
+              ],
+            ),
+            const Divider(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('গার্লফ্রেন্ড মোড ❤️ (Girlfriend Persona)',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text(
+                  'স্নেহ, ভালোবাসা ও কেয়ারিং সুরে মিষ্টি বাংলায় কথা বলবে',
+                  style: TextStyle(fontSize: 12)),
+              value: _settings.girlfriendMode,
+              onChanged: (v) => _settings.setGirlfriendMode(v),
+            ),
+            const Divider(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Anti-Theft Security Guardian',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text(
+                  'Locks phone, warns intruder in Bengali & alerts Telegram',
+                  style: TextStyle(fontSize: 12)),
+              value: _settings.securityGuardianEnabled,
+              onChanged: (v) => _settings.setSecurityGuardianEnabled(v),
+            ),
+            if (_settings.securityGuardianEnabled) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: _ownerPhraseController,
+                decoration: const InputDecoration(
+                  labelText: 'Owner Voice Passphrase / Keyword',
+                  hintText: 'যেমন: ইমরান, mysecretcode',
+                  helperText: 'Commands without this phrase will lock the phone',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (v) => _settings.setOwnerSecretPhrase(v),
+              ),
+            ],
           ],
         ),
       ),

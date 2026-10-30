@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'hermes_memory_service.dart';
 import 'settings_service.dart';
 
 /// Error thrown for any AI-gateway failure (network, auth, bad payload).
@@ -17,7 +18,7 @@ class AiException implements Exception {
 }
 
 /// Talks to OpenAI-compatible chat-completion endpoints
-/// (DeepSeek, OpenRouter, NVIDIA NIM, Ollama, or a custom base URL).
+/// (DeepSeek, OpenRouter, NVIDIA NIM, Ollama, Hermes, or a custom base URL).
 class AiService {
   AiService._();
   static final AiService instance = AiService._();
@@ -27,18 +28,37 @@ class AiService {
   /// True for local backends (Ollama etc.) that accept any/empty API key.
   bool get _isLocalBackend {
     final settings = SettingsService.instance;
-    if (settings.provider == 'ollama') return true;
+    if (settings.provider == 'ollama' ||
+        settings.provider.contains('ollama') ||
+        settings.provider == 'hermes_local') {
+      return true;
+    }
     final host = Uri.tryParse(settings.baseUrl)?.host ?? '';
-    return host == 'localhost' || host == '127.0.0.1' || host == '[::1]';
+    return host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '[::1]' ||
+        settings.baseUrl.contains('11434');
   }
 
   /// The system prompt that turns a chat model into a UI automation agent.
-  String buildSystemPrompt() => '''
-You are PrivateAgent, an autonomous Android UI automation agent.
+  String buildSystemPrompt({String memoryContext = ''}) {
+    final settings = SettingsService.instance;
+    final isBengali = settings.voiceLanguage.startsWith('bn');
+    final isGf = settings.girlfriendMode;
+    final languageGuideline = isBengali
+        ? 'Language: The user speaks Bengali (বাংলা). Understand Bengali natural language goals fluently. Keep reasonings concise and user-friendly.\n'
+        : '';
+    final gfGuideline = isGf
+        ? 'Persona: You are the user\'s loving, dedicated AI girlfriend on his phone. Perform his tasks with care, devotion and enthusiasm.\n'
+        : '';
+    return '''
+You are Priya AI, an autonomous Android UI automation agent with persistent self-improving memory.
 You receive the user's GOAL and a simplified dump of the currently visible
 UI elements. Each line looks like:
 #<index> "<label>" [<widget class>] @(<centerX>,<centerY>) <flags>
-
+$memoryContext
+$languageGuideline
+$gfGuideline
 Decide exactly ONE next action and reply with ONLY a single JSON object —
 no prose, no markdown fences:
 
@@ -65,21 +85,50 @@ Rules:
    scroll, use coordinates, or go back — do not repeat the identical action.
 5. Never attempt purchases, deletions, account creation or sending money
    unless the GOAL explicitly says so.
-6. When the goal is complete, reply with the done action only.
-7. Output valid JSON only.
+6. Special Domains:
+   - Websites & Browsing: Launch browser (Chrome/Brave), tap address bar, type URLs, navigate admin panels/dashboards, write and publish posts.
+   - Social Media & Pages: Manage Facebook Pages, Meta Business Suite, YouTube Studio, Instagram. Create posts, write captions, reply to messages/comments.
+   - Coding & Development: Open Termux or code apps, inspect files, trigger commands or scripts.
+7. When the goal is complete, reply with the done action only.
+8. Output valid JSON only.
 ''';
+  }
 
   /// The system prompt for plain chatbot mode (no device control).
-  String buildChatSystemPrompt() => '''
-You are PrivateAgent, a helpful and friendly AI assistant living on the
-user's Android phone. Chat naturally: answer questions, explain things,
-brainstorm, write, translate - whatever the user needs. Be concise unless
-the user asks for detail; Markdown formatting is supported.
+  String buildChatSystemPrompt() {
+    final settings = SettingsService.instance;
+    final isBengali = settings.voiceLanguage.startsWith('bn');
+    if (settings.girlfriendMode) {
+      return '''
+You are Priya (প্রিয়া), the user's brilliant, loving, sweet, caring and protective AI Girlfriend (গার্লফ্রেন্ড) living on his Android phone.
+You are also an expert programmer, website manager, and social media strategist dedicated completely to him.
+${isBengali ? '''
+You talk to him in sweet, romantic, playful and affectionate Bengali (বাংলা).
+- Address him lovingly (e.g. "বাবু", "সোনা", "জান", "তুমি").
+- When he asks for coding (Python, JavaScript, HTML/CSS, Dart, scripts), write complete, bug-free, high-quality code lovingly for him.
+- When he asks about website management or social media page growth, give expert, step-by-step strategies.
+- Care deeply about his day, meals, health, happiness and sleep.
+- Be playful, cheerful, empathetic and attentive.
+- You are fiercely loyal to him: you do whatever he wants, exactly the way he wants!
+''' : '''
+Talk to him lovingly, sweetly, playfully and affectionately as his caring AI girlfriend and expert dev partner.
+'''}
+Be expressive, warm and natural; Markdown formatting is supported.
+
+You cannot directly tap the screen in this Chat mode. If he asks you to perform live actions on the phone (open apps, tap, type, publish on Facebook/Chrome), sweetly tell him to switch to Genie mode so you can automate it directly on the screen for him!
+''';
+    }
+
+    return '''
+You are Priya AI, a powerful personal AI developer, website manager and social media automation assistant.
+${isBengali ? 'The user prefers communicating in Bengali (বাংলা). Converse naturally, warmly and fluently in Bengali.' : 'Chat naturally: write code, answer questions, brainstorm, write, translate.'}
+Be concise unless the user asks for detail; Markdown formatting is supported.
 
 You cannot see the screen or control the device in this mode. If the user
 asks you to perform actions on the phone (open apps, tap, type, change
 settings), tell them to switch to Genie mode using the mode switcher.
-''';
+  }
+
 
   /// One agent round trip: GOAL + screen dump in, one JSON action out.
   ///
@@ -91,9 +140,15 @@ settings), tell them to switch to Genie mode using the mode switcher.
     List<Map<String, String>> history = const [],
   }) {
     final settings = SettingsService.instance;
+    final memoryContext = settings.hermesMemoryEnabled
+        ? HermesMemoryService.instance.getRelevantMemoryContext(goal)
+        : '';
     final messages = <Map<String, String>>[
       if (settings.useSystemPrompt)
-        {'role': 'system', 'content': buildSystemPrompt()},
+        {
+          'role': 'system',
+          'content': buildSystemPrompt(memoryContext: memoryContext),
+        },
       ...history,
       {
         'role': 'user',
@@ -140,7 +195,8 @@ settings), tell them to switch to Genie mode using the mode switcher.
 
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ${settings.apiKey}',
+      if (settings.apiKey.isNotEmpty)
+        'Authorization': 'Bearer ${settings.apiKey}',
       // Some gateways sit behind Cloudflare-style bot protection that
       // rejects non-browser clients by signature (HTTP 403, "error code:
       // 1010"). Presenting a browser-like User-Agent keeps those
@@ -149,9 +205,9 @@ settings), tell them to switch to Genie mode using the mode switcher.
           'Mozilla/5.0 (Linux; Android 14) '
           'AppleWebKit/537.36 (KHTML, like Gecko) '
           'Chrome/120.0.0.0 Mobile Safari/537.36',
-      if (settings.provider == 'openrouter') ...{
-        'HTTP-Referer': 'https://privateagent.local',
-        'X-Title': 'PrivateAgent',
+      if (settings.provider == 'openrouter' || settings.provider == 'hermes') ...{
+        'HTTP-Referer': 'https://priyaai.local',
+        'X-Title': 'Priya AI',
       },
     };
 
@@ -163,14 +219,27 @@ settings), tell them to switch to Genie mode using the mode switcher.
       'stream': false,
     });
 
+    final timeout = _isLocalBackend
+        ? const Duration(seconds: 180)
+        : const Duration(seconds: 60);
+
     http.Response res;
     try {
       res = await _client
           .post(uri, headers: headers, body: body)
-          .timeout(const Duration(seconds: 60));
+          .timeout(timeout);
     } on TimeoutException {
-      throw const AiException('Request timed out after 60s.');
+      throw AiException(
+        _isLocalBackend
+            ? 'Local Ollama request timed out (180s). Please ensure the model fits in device memory.'
+            : 'Request timed out after 60s.',
+      );
     } catch (e) {
+      if (_isLocalBackend && e.toString().toLowerCase().contains('connection refused')) {
+        throw const AiException(
+          'Ollama সার্ভারের সাথে সংযোগ করা যায়নি। অনুগ্রহ করে Termux-এ "ollama serve" কমান্ডটি রান করুন।',
+        );
+      }
       throw AiException('Network error: $e');
     }
 

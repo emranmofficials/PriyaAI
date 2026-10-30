@@ -6,6 +6,7 @@ import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 
 import 'app.dart';
 import 'overlay/overlay_app.dart';
+import 'services/hermes_memory_service.dart';
 import 'services/screen_automation_service.dart';
 import 'services/settings_service.dart';
 import 'services/task_executor.dart';
@@ -17,13 +18,15 @@ Future<void> main() async {
   final settings = SettingsService.instance;
   await settings.init();
 
+  await HermesMemoryService.instance.init();
+
   final executor = TaskExecutor.instance;
   await executor.init();
 
   _wireTelegram(executor, settings);
   _wireOverlayCommands(executor);
 
-  runApp(const PrivateAgentApp());
+  runApp(const PriyaApp());
 }
 
 /// Telegram bot -> task executor wiring.

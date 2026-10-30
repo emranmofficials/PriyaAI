@@ -6,14 +6,14 @@ import 'services/settings_service.dart';
 import 'theme/app_theme.dart';
 
 /// Root application widget with theme + onboarding routing.
-class PrivateAgentApp extends StatefulWidget {
-  const PrivateAgentApp({super.key});
+class PriyaApp extends StatefulWidget {
+  const PriyaApp({super.key});
 
   @override
-  State<PrivateAgentApp> createState() => _PrivateAgentAppState();
+  State<PriyaApp> createState() => _PriyaAppState();
 }
 
-class _PrivateAgentAppState extends State<PrivateAgentApp> {
+class _PriyaAppState extends State<PriyaApp> {
   final _settings = SettingsService.instance;
 
   @override
@@ -35,7 +35,7 @@ class _PrivateAgentAppState extends State<PrivateAgentApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PrivateAgent',
+      title: 'Priya AI',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

@@ -5,6 +5,7 @@ import 'package:speech_to_text/speech_recognition_result.dart';
 
 import '../../models/task_history_entry.dart';
 import '../../services/screen_automation_service.dart';
+import '../../services/security_guardian_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/task_executor.dart';
 import '../../services/voice_service.dart';
@@ -93,6 +94,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final goal = text.trim();
     if (goal.isEmpty || _busy) return;
     _inputController.clear();
+
+    // Owner security verification check
+    final settings = SettingsService.instance;
+    if (settings.securityGuardianEnabled &&
+        settings.ownerSecretPhrase.isNotEmpty &&
+        !SecurityGuardianService.instance.verifyVoiceAuthorization(goal)) {
+      SecurityGuardianService.instance.triggerIntruderDefense(
+        reason: 'অননুমোদিত কমান্ড: "$goal"',
+      );
+      return;
+    }
+
+    if (goal.startsWith('!')) {
+      final cmd = goal.substring(1).trim();
+      _executor.executeCommand(cmd);
+      return;
+    }
+
     if (_mode == AppMode.genie) {
       _executor.executeTask(goal);
     } else {
@@ -142,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           width: 120,
           alignment: OverlayAlignment.centerRight,
           flag: OverlayFlag.defaultFlag,
-          overlayTitle: 'PrivateAgent',
+          overlayTitle: 'Priya AI',
           overlayContent: 'Agent bubble active',
           enableDrag: true,
           positionGravity: PositionGravity.auto,
@@ -168,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             Image.asset('assets/icon/genie_logo.png', width: 30, height: 30),
             const SizedBox(width: 10),
-            const Text('PrivateAgent'),
+            const Text('Priya AI'),
             const SizedBox(width: 10),
             ServiceStatusDot(enabled: _serviceEnabled),
           ],
@@ -237,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'PrivateAgent',
+                        'Priya AI',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -482,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Text(
                 isGenie
                     ? 'What should I do on your phone?'
-                    : 'Chat with PrivateAgent',
+                    : 'Chat with Priya AI',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),

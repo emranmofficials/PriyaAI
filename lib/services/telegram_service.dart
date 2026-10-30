@@ -107,7 +107,7 @@ class TelegramService extends ChangeNotifier {
     if (allowed.isEmpty && owner.isEmpty) {
       await settings.setTelegramOwnerChatId(chatId);
       await sendMessage(chatId,
-          '👋 PrivateAgent paired with this chat. Send me any task, e.g.\n'
+          '👋 Priya AI paired with this chat. Send me any task, e.g.\n'
           '"Open YouTube and search for lofi music".\n\n'
           'Commands: /status /screenshot /cancel');
       return;
@@ -151,7 +151,7 @@ class TelegramService extends ChangeNotifier {
           'POST', Uri.parse('$_api/sendPhoto'))
         ..fields['chat_id'] = chatId
         ..fields['caption'] =
-            caption ?? 'PrivateAgent screenshot'
+            caption ?? 'Priya AI screenshot'
         ..files.add(http.MultipartFile.fromBytes('photo', bytes,
             filename: 'screenshot.png'));
       final streamed = await _client.send(request);

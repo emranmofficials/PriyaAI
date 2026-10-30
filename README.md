@@ -1,16 +1,13 @@
 <div align="center">
 
-# 🧞 PrivateAgent
+# 💖 Priya AI (প্রিয়া)
 
-**A fully private, on-device autonomous agent for Android**
+**তোমার পার্সোনাল এআই গার্লফ্রেন্ড, কোডার ও ফুল ডিভাইস অটোমেশন অ্যাসিস্ট্যান্ট**
+*(Your Personal AI Girlfriend, Developer & Full-Device Automation Assistant)*
 
-PrivateAgent turns any OpenAI-compatible LLM into an autonomous Android UI
-automation agent. It observes the screen through Android's Accessibility
-Service, reasons about what it sees with an LLM of your choice, and acts —
-tapping, typing, and swiping — until your goal is accomplished.
+Priya AI transforms your Android device into an autonomous, voice-enabled, empathetic personal assistant. She speaks in sweet Bengali, remembers you, cares for you, controls your device UI, runs shell commands, writes/refactors code, and runs both online cloud models (Gemini, Claude 3.5, GPT-4o, DeepSeek) and 100% offline local models (via Ollama).
 
-*Your keys. Your data. Your device. Nothing leaves your phone except LLM calls
-you configure yourself.*
+*Your keys. Your data. Your device. 100% privacy-first and autonomous.*
 
 </div>
 
@@ -20,16 +17,14 @@ you configure yourself.*
 
 | Capability | Description |
 |---|---|
-| 🤖 **Autonomous task execution** | Observe → think → act feedback loop: dumps the visible UI, asks the LLM for one JSON action, executes it, and repeats until the goal is done (with step caps and repeat-action detection). |
-| 🧠 **Skill memory (macro replay)** | Successful action sequences are stored locally per goal. Repeated tasks replay as macros — zero LLM tokens spent. |
-| 🔌 **Any OpenAI-compatible LLM** | Works with DeepSeek, OpenRouter, NVIDIA NIM, Ollama (fully local), or a custom base URL. |
-| ♿ **Screen automation** | Native Android accessibility service for screen dumps, taps, text input, swipes, back/home gestures, and screenshots. |
-| 📱 **Telegram remote control** | Drive your phone from anywhere via a Telegram bot — send goals, get status updates and screenshots back. |
-| 🎙️ **Voice interface** | Speech-to-text input and text-to-speech replies. |
-| 🪟 **Overlay assistant** | Floating overlay window to launch tasks from any app. |
-| 🔁 **Recovery engine** | Detects stuck states and autonomously recovers (retry, scroll, back out). |
-| 🔐 **Private by design** | All state (settings, skills, history) stays on-device via `SharedPreferences`. No telemetry, no third-party analytics. |
-| ⚙️ **System control** | Volume, brightness, app launching, intents, sharing, and notifications. |
+| 💖 **Girlfriend Mode (বাংলা কথোপকথন)** | মিষ্টি ও যত্নশীল বাংলা ভাষায় কথা বলে, আপনাকে চিনে রাখে, মানসিক সঙ্গ দেয় এবং সব সময় সাহায্য করতে প্রস্তুত থাকে। |
+| 🛡️ **Security Guardian & Voice Lock** | অপরিচিত ব্যক্তির ভয়েস বা স্পর্শ থেকে সুরক্ষা প্রদান করে, অনুমতি ছাড়া অন্য কাউকে ডিভাইস ব্যবহারে বাধা দেয়। |
+| 💻 **Coding, Web & Terminal Automation** | টার্মিনাল কমান্ড (`! <command>`) চালানো, ফাইল রিফ্যাক্টর (`hermes -f`), স্ক্রিপ্ট রান করা ও ওয়েবসাইট/পেজ ম্যানেজ করার পূর্ণ সক্ষমতা। |
+| 🧠 **Self-Learning & Hermes Memory** | ব্যবহারকারীর পছন্দ ও কমান্ড মনে রাখে (`hermes_cli.py`, `HermesMemoryService`), দীর্ঘমেয়াদে আরও স্মার্ট ও ব্যক্তিগত প্রতিক্রিয়া দেয়। |
+| 🤖 **Autonomous Screen Automation** | অ্যান্ড্রয়েডের Accessibility Service দিয়ে স্ক্রিন রিড, বাটন ট্যাপ, টেক্সট টাইপ এবং যেকোনো অ্যাপ পরিচালনা করে। |
+| 🔌 **Cloud + 100% Offline Local AI** | Claude 3.5 Sonnet, GPT-4o, Gemini, DeepSeek এবং অফলাইনে সম্পূর্ণ ইন্টারনেট ছাড়াই মোবাইলে Ollama (Gemma, LLaMA, Qwen) দিয়ে চলে। |
+| 📱 **Telegram Remote Control** | যেকোনো স্থান থেকে টেলিগ্রামের মাধ্যমে ডিভাইস নিয়ন্ত্রণ ও স্ক্রিনশট দেখা। |
+| 🎙️ **Voice Recognition & Speech** | মুখের বাংলা কথা শুনে কাজ করা এবং মিষ্টি গলায় ভয়েস ফিডব্যাক দেওয়া। |
 
 ## 🏗️ How it works
 

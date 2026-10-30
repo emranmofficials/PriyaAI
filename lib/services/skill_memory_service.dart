@@ -93,6 +93,8 @@ class SkillMemoryService {
         goal: goal,
         steps: cleaned,
         successCount: existing.successCount,
+        failureCount: 0,
+        learnedRules: existing.learnedRules,
         lastUsedAt: DateTime.now(),
         createdAt: existing.createdAt,
       );
@@ -116,11 +118,15 @@ class SkillMemoryService {
     if (index < 0) return;
     if (success) {
       skills[index].successCount += 1;
+      skills[index].failureCount = 0;
       skills[index].lastUsedAt = DateTime.now();
     } else {
-      // A skill that failed to replay is likely stale (app UI changed):
-      // drop it so the next run relearns from the AI.
-      skills.removeAt(index);
+      // Hermes adaptive tolerance:
+      // Don't discard immediately on first failure; give it a chance to recover.
+      skills[index].failureCount += 1;
+      if (skills[index].failureCount >= 2) {
+        skills.removeAt(index);
+      }
     }
     await _persist();
   }

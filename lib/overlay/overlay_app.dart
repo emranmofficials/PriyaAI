@@ -226,7 +226,7 @@ class _OverlayAppState extends State<OverlayApp> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('PrivateAgent',
+                const Text('Priya AI',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,

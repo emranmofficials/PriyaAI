@@ -3,6 +3,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import 'settings_service.dart';
+
 /// Voice interaction: speech-to-text for commands, text-to-speech for
 /// spoken feedback.
 class VoiceService {
@@ -42,14 +44,19 @@ class VoiceService {
     return _speechReady;
   }
 
-  Future<void> initTts() async {
-    if (_ttsReady) return;
+  Future<void> initTts({String? lang}) async {
+    final targetLang = lang ?? SettingsService.instance.voiceLanguage;
     try {
-      await _tts.setLanguage('en-US');
+      await _tts.setLanguage(targetLang);
       await _tts.setSpeechRate(0.5);
       _ttsReady = true;
     } catch (_) {
-      _ttsReady = false;
+      try {
+        await _tts.setLanguage('en-US');
+        _ttsReady = true;
+      } catch (_) {
+        _ttsReady = false;
+      }
     }
   }
 
@@ -57,13 +64,21 @@ class VoiceService {
   /// (check `result.finalResult` for the definitive text).
   Future<bool> startListening({
     required void Function(SpeechRecognitionResult result) onResult,
+    String? localeId,
   }) async {
     if (!await initSpeech()) return false;
     if (_listening) await stopListening();
     _listening = true;
+
+    final lang = localeId ?? SettingsService.instance.voiceLanguage;
+    final locale = lang == 'bn-BD'
+        ? 'bn_BD'
+        : (lang == 'bn-IN' ? 'bn_IN' : 'en_US');
+
     try {
       await _speech.listen(
         onResult: onResult,
+        localeId: locale,
         listenOptions: SpeechListenOptions(
           listenFor: const Duration(seconds: 30),
           pauseFor: const Duration(seconds: 3),

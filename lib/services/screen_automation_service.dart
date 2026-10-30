@@ -140,6 +140,7 @@ class ScreenAutomationService {
   Future<bool> pressBack() => pressKey('back');
   Future<bool> pressHome() => pressKey('home');
   Future<bool> pressEnter() => pressKey('enter');
+  Future<bool> pressLock() => pressKey('lock');
 
   // ------------------------------------------------------------------
   // LLM-oriented formatting

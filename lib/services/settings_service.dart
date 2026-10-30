@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Interaction mode of the home screen.
@@ -32,6 +35,21 @@ class SettingsService extends ChangeNotifier {
   /// Well-known OpenAI-compatible providers.
   static const Map<String, ({String label, String baseUrl, String model})>
   providers = {
+    'ollama': (
+      label: 'Ollama (Local Termux)',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      model: 'qwen2.5:0.5b',
+    ),
+    'hermes_local': (
+      label: 'Hermes 3 (Ollama)',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      model: 'hermes3',
+    ),
+    'hermes': (
+      label: 'Nous Hermes 3 (Cloud)',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'nousresearch/hermes-3-llama-3.1-70b',
+    ),
     'deepseek': (
       label: 'DeepSeek',
       baseUrl: 'https://api.deepseek.com/v1',
@@ -57,15 +75,15 @@ class SettingsService extends ChangeNotifier {
       baseUrl: 'https://integrate.api.nvidia.com/v1',
       model: 'meta/llama-3.3-70b-instruct',
     ),
-    'ollama': (
-      label: 'Ollama (local)',
-      baseUrl: 'http://127.0.0.1:11434/v1',
-      model: 'llama3.2',
+    'claude': (
+      label: 'Anthropic Claude',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'anthropic/claude-3.5-sonnet',
     ),
     'custom': (label: 'Custom (OpenAI-compatible)', baseUrl: '', model: ''),
   };
 
-  String get provider => _prefs?.getString('ai_provider') ?? 'deepseek';
+  String get provider => _prefs?.getString('ai_provider') ?? 'ollama';
   Future<void> setProvider(String value) async {
     await _prefs?.setString('ai_provider', value);
     final preset = providers[value];
@@ -79,7 +97,7 @@ class SettingsService extends ChangeNotifier {
   String get baseUrl =>
       _prefs?.getString('ai_base_url') ??
       providers[provider]?.baseUrl ??
-      providers['deepseek']!.baseUrl;
+      providers['ollama']!.baseUrl;
   Future<void> setBaseUrl(String value) async {
     await _prefs?.setString('ai_base_url', value.trim());
     notifyListeners();
@@ -94,10 +112,38 @@ class SettingsService extends ChangeNotifier {
   String get model =>
       _prefs?.getString('ai_model') ??
       providers[provider]?.model ??
-      'deepseek-chat';
+      'qwen2.5:0.5b';
   Future<void> setModel(String value) async {
     await _prefs?.setString('ai_model', value.trim());
     notifyListeners();
+  }
+
+  /// Fetches installed model tags from Ollama API endpoint.
+  Future<List<String>> fetchOllamaModels({String? customBaseUrl}) async {
+    try {
+      final base = (customBaseUrl ?? baseUrl).trim().replaceAll(RegExp(r'/+$'), '');
+      final rootUrl = base.endsWith('/v1')
+          ? base.substring(0, base.length - 3)
+          : base;
+      final uri = Uri.parse('$rootUrl/api/tags');
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(res.bodyBytes));
+        final modelsList = data['models'];
+        if (modelsList is List) {
+          final result = <String>[];
+          for (final m in modelsList) {
+            if (m is Map && m['name'] != null) {
+              result.add(m['name'].toString());
+            }
+          }
+          return result;
+        }
+      }
+    } catch (_) {
+      // Ollama might not be running or unreachable
+    }
+    return const [];
   }
 
   /// Defaults to 2048 so reasoning models (which burn completion tokens on
@@ -140,6 +186,14 @@ class SettingsService extends ChangeNotifier {
   bool get skillsEnabled => _prefs?.getBool('agent_skills_enabled') ?? true;
   Future<void> setSkillsEnabled(bool value) async {
     await _prefs?.setBool('agent_skills_enabled', value);
+    notifyListeners();
+  }
+
+  /// Whether Hermes-style persistent memory (learning loop) is enabled.
+  bool get hermesMemoryEnabled =>
+      _prefs?.getBool('agent_hermes_memory_enabled') ?? true;
+  Future<void> setHermesMemoryEnabled(bool value) async {
+    await _prefs?.setBool('agent_hermes_memory_enabled', value);
     notifyListeners();
   }
 
@@ -225,9 +279,39 @@ class SettingsService extends ChangeNotifier {
   }
 
   /// Whether the assistant should speak results aloud via TTS.
-  bool get voiceFeedback => _prefs?.getBool('voice_feedback') ?? false;
+  bool get voiceFeedback => _prefs?.getBool('voice_feedback') ?? true;
   Future<void> setVoiceFeedback(bool value) async {
     await _prefs?.setBool('voice_feedback', value);
+    notifyListeners();
+  }
+
+  /// Voice language: 'bn-BD' (Bengali) or 'en-US' (English). Defaults to 'bn-BD'.
+  String get voiceLanguage => _prefs?.getString('voice_language') ?? 'bn-BD';
+  Future<void> setVoiceLanguage(String value) async {
+    await _prefs?.setString('voice_language', value);
+    notifyListeners();
+  }
+
+  /// Security guardian: locks device and sounds warning if unauthorized access detected.
+  bool get securityGuardianEnabled =>
+      _prefs?.getBool('security_guardian_enabled') ?? true;
+  Future<void> setSecurityGuardianEnabled(bool value) async {
+    await _prefs?.setBool('security_guardian_enabled', value);
+    notifyListeners();
+  }
+
+  /// Secret owner voice passphrase or authorization keyword.
+  String get ownerSecretPhrase =>
+      _prefs?.getString('security_owner_phrase') ?? '';
+  Future<void> setOwnerSecretPhrase(String value) async {
+    await _prefs?.setString('security_owner_phrase', value.trim());
+    notifyListeners();
+  }
+
+  /// Girlfriend persona mode: caring, sweet, affectionate and protective.
+  bool get girlfriendMode => _prefs?.getBool('persona_girlfriend_mode') ?? true;
+  Future<void> setGirlfriendMode(bool value) async {
+    await _prefs?.setBool('persona_girlfriend_mode', value);
     notifyListeners();
   }
 }

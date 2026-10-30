@@ -97,6 +97,12 @@ class TaskStep {
   /// markdown fences, leading prose and trailing commentary.
   static TaskStep? tryParse(String aiText) {
     var text = aiText.trim();
+    // Strip reasoning / thought tags common in Hermes, DeepSeek, and thinking models.
+    text = text.replaceAll(
+      RegExp(r'<(?:thought|thinking)>[\s\S]*?<\/(?:thought|thinking)>', caseSensitive: false),
+      '',
+    ).trim();
+
     // Strip markdown code fences if present.
     final fence = RegExp(r'```(?:json)?\s*([\s\S]*?)```', caseSensitive: false);
     final fenceMatch = fence.firstMatch(text);

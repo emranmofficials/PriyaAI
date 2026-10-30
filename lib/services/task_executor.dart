@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
@@ -12,6 +13,7 @@ import '../models/task_history_entry.dart';
 import '../models/task_step.dart';
 import 'ai_service.dart';
 import 'app_launcher_service.dart';
+import 'hermes_memory_service.dart';
 import 'recovery_engine.dart';
 import 'screen_automation_service.dart';
 import 'settings_service.dart';
@@ -234,6 +236,35 @@ class TaskExecutor extends ChangeNotifier {
     }
   }
 
+  /// Executes a direct shell command (e.g. starting with `!`) on the device
+  /// and prints the stdout/stderr output into the chat transcript.
+  Future<void> executeCommand(String command) async {
+    final cmd = command.trim();
+    if (cmd.isEmpty || isBusy || _chatBusy) return;
+
+    _chatBusy = true;
+    _log(ChatMessage.user('! $cmd'));
+    notifyListeners();
+
+    try {
+      final result = await Process.run('sh', ['-c', cmd])
+          .timeout(const Duration(seconds: 30));
+      final stdout = result.stdout.toString().trim();
+      final stderr = result.stderr.toString().trim();
+      final output = stdout.isNotEmpty
+          ? stdout
+          : (stderr.isNotEmpty
+              ? stderr
+              : '(Command completed with exit code ${result.exitCode})');
+      _log(ChatMessage.agent('```\n$output\n```'));
+    } catch (e) {
+      _log(ChatMessage.error('Command execution failed: $e'));
+    } finally {
+      _chatBusy = false;
+      notifyListeners();
+    }
+  }
+
   // ------------------------------------------------------------------
   // Main loop
   // ------------------------------------------------------------------
@@ -267,7 +298,7 @@ class TaskExecutor extends ChangeNotifier {
       if (!await _automation.isServiceEnabled()) {
         _log(
           ChatMessage.error(
-            'Accessibility service is OFF. Enable "PrivateAgent Screen '
+            'Accessibility service is OFF. Enable "Priya AI Screen '
             'Control" in system settings, then retry.',
           ),
         );
@@ -590,18 +621,42 @@ class TaskExecutor extends ChangeNotifier {
     }
     await _persistHistory();
 
-    final summary = switch (status) {
-      TaskStatus.success => 'Task completed in $step step(s).',
-      TaskStatus.cancelled => 'Task cancelled after $step step(s).',
-      TaskStatus.failed => 'Task failed after $step step(s).',
-    };
+    final isBengali = SettingsService.instance.voiceLanguage.startsWith('bn');
+    final isGf = SettingsService.instance.girlfriendMode;
+    final summary = isBengali
+        ? (isGf
+            ? switch (status) {
+                TaskStatus.success => 'বাবু, তোমার কাজটা সফলভাবে করে দিয়েছি!',
+                TaskStatus.cancelled => 'তুমি থামতে বলেছো তাই বাতিল করেছি সোনা।',
+                TaskStatus.failed => 'ইশ! কাজটা করতে একটু সমস্যা হলো সোনা।',
+              }
+            : switch (status) {
+                TaskStatus.success => 'টাস্কটি $step ধাপে সফলভাবে সম্পন্ন হয়েছে।',
+                TaskStatus.cancelled => '$step ধাপের পর টাস্ক বাতিল করা হয়েছে।',
+                TaskStatus.failed => '$step ধাপের পর টাস্ক ব্যর্থ হয়েছে।',
+              })
+        : switch (status) {
+            TaskStatus.success => 'Task completed in $step step(s).',
+            TaskStatus.cancelled => 'Task cancelled after $step step(s).',
+            TaskStatus.failed => 'Task failed after $step step(s).',
+          };
     _log(ChatMessage.system(summary));
+
+    // Hermes learning loop: persist knowledge & failure patterns
+    if (SettingsService.instance.hermesMemoryEnabled) {
+      await HermesMemoryService.instance.recordExperience(
+        goal: goal,
+        success: status == TaskStatus.success,
+        steps: List.of(_executedSteps),
+        failureReason: status != TaskStatus.success ? summary : null,
+      );
+    }
 
     if (SettingsService.instance.voiceFeedback) {
       await VoiceService.instance.speak(summary);
     }
     await SystemControlService.instance.notify(
-      'PrivateAgent — ${status.name}',
+      'Priya AI — ${status.name}',
       '$goal\n$summary',
     );
 

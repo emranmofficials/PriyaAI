@@ -177,7 +177,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return _pageShell(
       theme,
       icon: Icons.smart_toy_outlined,
-      title: 'Meet PrivateAgent',
+      title: 'Meet Priya AI',
       subtitle: 'An on-device automation agent that turns natural language '
           'into real actions on your phone — powered by your own LLM API key. '
           'Nothing is shared except what goes to the provider you choose.',
@@ -228,7 +228,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       theme,
       icon: Icons.accessibility_new_outlined,
       title: 'Enable screen control',
-      subtitle: 'PrivateAgent works through an Android accessibility service. '
+      subtitle: 'Priya AI works through an Android accessibility service. '
           'This is what lets it read the screen and tap buttons for you.',
       children: [
         Card(
@@ -247,8 +247,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 Expanded(
                   child: Text(
                     _serviceEnabled
-                        ? 'PrivateAgent Screen Control is enabled'
-                        : 'PrivateAgent Screen Control is OFF',
+                        ? 'Priya AI Screen Control is enabled'
+                        : 'Priya AI Screen Control is OFF',
                     style: theme.textTheme.titleSmall
                         ?.copyWith(fontWeight: FontWeight.w600),
                   ),
@@ -277,7 +277,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         const SizedBox(height: 16),
         Text(
           'On Android 13 and newer you may need to open App Info → ⋮ menu → '
-          '"Allow restricted settings" first, then enable "PrivateAgent '
+          '"Allow restricted settings" first, then enable "Priya AI '
           'Screen Control" under Accessibility → Downloaded apps.',
           style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant, height: 1.5),

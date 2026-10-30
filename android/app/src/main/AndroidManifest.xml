@@ -31,7 +31,7 @@
     <uses-permission android:name="android.permission.SET_ALARM" />
 
     <application
-        android:label="PrivateAgent"
+        android:label="Priya AI"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
@@ -79,7 +79,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Shows the PrivateAgent floating control bubble and transcript panel on top of other apps while the agent performs UI automation." />
+                android:value="Shows the Priya AI floating control bubble and transcript panel on top of other apps while the agent performs UI automation." />
         </service>
 
         <!-- Shizuku provider (optional privileged commands) -->

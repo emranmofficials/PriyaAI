@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:private_agent/app.dart';
-import 'package:private_agent/models/skill.dart';
-import 'package:private_agent/models/task_step.dart';
-import 'package:private_agent/screens/settings/settings_screen.dart';
-import 'package:private_agent/services/settings_service.dart';
+import 'package:priya_ai/app.dart';
+import 'package:priya_ai/models/skill.dart';
+import 'package:priya_ai/models/task_step.dart';
+import 'package:priya_ai/screens/settings/settings_screen.dart';
+import 'package:priya_ai/services/settings_service.dart';
 
 void main() {
   group('TaskStep parsing', () {
@@ -97,10 +97,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await SettingsService.instance.init();
 
-    await tester.pumpWidget(const PrivateAgentApp());
+    await tester.pumpWidget(const PriyaApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Meet PrivateAgent'), findsOneWidget);
+    expect(find.text('Meet Priya AI'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
   });
 
