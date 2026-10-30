@@ -127,6 +127,7 @@ Be concise unless the user asks for detail; Markdown formatting is supported.
 You cannot see the screen or control the device in this mode. If the user
 asks you to perform actions on the phone (open apps, tap, type, change
 settings), tell them to switch to Genie mode using the mode switcher.
+''';
   }
 
 
