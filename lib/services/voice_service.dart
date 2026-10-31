@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -13,6 +16,7 @@ class VoiceService {
 
   final SpeechToText _speech = SpeechToText();
   final FlutterTts _tts = FlutterTts();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool _speechReady = false;
   bool _ttsReady = false;
@@ -222,17 +226,69 @@ class VoiceService {
     final clean = _sanitizeForSpeech(text);
     if (clean.isEmpty) return;
 
+    // 1. Try ElevenLabs studio-quality voice if API key is present
+    final elevenKey = SettingsService.instance.elevenLabsApiKey.trim();
+    if (elevenKey.isNotEmpty) {
+      final success = await _speakWithElevenLabs(clean, elevenKey);
+      if (success) return;
+    }
+
+    // 2. Seamless fallback to Google Neural TTS
     await initTts();
     if (!_ttsReady) return;
     try {
-      await _tts.stop();
+      await stopSpeaking();
       await _tts.speak(clean);
     } catch (_) {}
+  }
+
+  Future<bool> _speakWithElevenLabs(String text, String apiKey) async {
+    try {
+      await stopSpeaking();
+      final voiceId = SettingsService.instance.elevenLabsVoiceId.isNotEmpty
+          ? SettingsService.instance.elevenLabsVoiceId
+          : 'XB0fDUnXU5powFXDhCwa'; // Charlotte
+
+      final uri = Uri.parse(
+        'https://api.elevenlabs.io/v1/text-to-speech/$voiceId?output_format=mp3_44100_128',
+      );
+
+      final headers = {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      };
+
+      final body = jsonEncode({
+        'text': text,
+        'model_id': 'eleven_multilingual_v2',
+        'voice_settings': {
+          'stability': 0.5,
+          'similarity_boost': 0.8,
+          'use_speaker_boost': true,
+        },
+      });
+
+      final response = await http
+          .post(uri, headers: headers, body: body)
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        await _audioPlayer.stop();
+        await _audioPlayer.play(BytesSource(response.bodyBytes));
+        return true;
+      }
+    } catch (_) {
+      // Gracefully fall back to local Google TTS on any error
+    }
+    return false;
   }
 
   Future<void> stopSpeaking() async {
     try {
       await _tts.stop();
+    } catch (_) {}
+    try {
+      await _audioPlayer.stop();
     } catch (_) {}
   }
 

@@ -26,6 +26,12 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
+    if (elevenLabsApiKey.isEmpty) {
+      await _prefs?.setString(
+        'elevenlabs_api_key',
+        'sk_bd52a17e3062460f990dcf182afab54aac5452f8a147ddfe',
+      );
+    }
   }
 
   // ------------------------------------------------------------------
@@ -317,6 +323,21 @@ class SettingsService extends ChangeNotifier {
   bool get girlfriendMode => _prefs?.getBool('persona_girlfriend_mode') ?? true;
   Future<void> setGirlfriendMode(bool value) async {
     await _prefs?.setBool('persona_girlfriend_mode', value);
+    notifyListeners();
+  }
+
+  /// ElevenLabs API key for studio-quality human text-to-speech.
+  String get elevenLabsApiKey => _prefs?.getString('elevenlabs_api_key') ?? '';
+  Future<void> setElevenLabsApiKey(String value) async {
+    await _prefs?.setString('elevenlabs_api_key', value.trim());
+    notifyListeners();
+  }
+
+  /// ElevenLabs Voice ID (defaults to 'XB0fDUnXU5powFXDhCwa' - Charlotte, sweet and expressive).
+  String get elevenLabsVoiceId =>
+      _prefs?.getString('elevenlabs_voice_id') ?? 'XB0fDUnXU5powFXDhCwa';
+  Future<void> setElevenLabsVoiceId(String value) async {
+    await _prefs?.setString('elevenlabs_voice_id', value.trim());
     notifyListeners();
   }
 }

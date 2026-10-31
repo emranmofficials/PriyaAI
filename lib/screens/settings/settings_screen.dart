@@ -25,9 +25,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _tokenController;
   late final TextEditingController _chatsController;
   late final TextEditingController _ownerPhraseController;
+  late final TextEditingController _elevenLabsKeyController;
 
   bool _obscureKey = true;
   bool _obscureToken = true;
+  bool _obscureElevenKey = true;
 
   /// Provider seen during the last settings notification. The Base URL /
   /// Model fields are only re-synced when this actually changes (i.e. the
@@ -62,6 +64,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         TextEditingController(text: _settings.telegramAllowedChats.join(', '));
     _ownerPhraseController =
         TextEditingController(text: _settings.ownerSecretPhrase);
+    _elevenLabsKeyController =
+        TextEditingController(text: _settings.elevenLabsApiKey);
     _lastSyncedProvider = _settings.provider;
     // Rebuild so the Save button's enabled state tracks unsaved edits.
     for (final c in [
@@ -96,6 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _tokenController.dispose();
     _chatsController.dispose();
     _ownerPhraseController.dispose();
+    _elevenLabsKeyController.dispose();
     super.dispose();
   }
 
@@ -563,6 +568,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             const SizedBox(height: 10),
+            TextField(
+              controller: _elevenLabsKeyController,
+              obscureText: _obscureElevenKey,
+              decoration: InputDecoration(
+                labelText: 'ElevenLabs API Key (স্টুডিও কোয়ালিটি কণ্ঠ)',
+                hintText: 'sk_...',
+                prefixIcon: const Icon(Icons.graphic_eq_rounded),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureElevenKey
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscureElevenKey = !_obscureElevenKey),
+                ),
+              ),
+              onChanged: (v) => _settings.setElevenLabsApiKey(v),
+            ),
+            const SizedBox(height: 10),
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.purpleLight,
@@ -573,7 +596,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               icon: const Icon(Icons.record_voice_over_rounded),
-              label: const Text('প্রিয়ার মিষ্টি কন্ঠ শুনুন (Test Voice)'),
+              label: Text(_settings.elevenLabsApiKey.isNotEmpty
+                  ? 'প্রিয়ার মিষ্টি কন্ঠ শুনুন (ElevenLabs Active)'
+                  : 'প্রিয়ার মিষ্টি কন্ঠ শুনুন (Google Neural TTS)'),
               onPressed: () async {
                 await VoiceService.instance.testPriyaVoice();
               },
