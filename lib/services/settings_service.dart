@@ -65,6 +65,11 @@ class SettingsService extends ChangeNotifier {
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
       model: 'gemini-2.0-flash',
     ),
+    'groq': (
+      label: 'Groq (Ultra-Fast & Free)',
+      baseUrl: 'https://api.groq.com/openai/v1',
+      model: 'llama-3.3-70b-versatile',
+    ),
     'openrouter': (
       label: 'OpenRouter',
       baseUrl: 'https://openrouter.ai/api/v1',

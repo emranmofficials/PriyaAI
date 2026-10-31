@@ -206,13 +206,16 @@ class TaskExecutor extends ChangeNotifier {
   /// Sends a plain chat message and logs the LLM reply into the
   /// transcript. Unlike [executeTask] this never reads the screen,
   /// never touches the accessibility service and never replays skills.
-  Future<void> sendChatMessage(String text) async {
+  Future<void> sendChatMessage(String text, {bool spoke = false}) async {
     final message = text.trim();
     if (message.isEmpty || isBusy || _chatBusy) return;
 
     _chatBusy = true;
     _log(ChatMessage.user(message));
     notifyListeners();
+
+    final isGf = SettingsService.instance.girlfriendMode;
+    final isBengali = SettingsService.instance.voiceLanguage.startsWith('bn');
 
     try {
       final reply = await _ai.chat(
@@ -225,10 +228,31 @@ class TaskExecutor extends ChangeNotifier {
         _chatHistory.removeRange(0, 2);
       }
       _log(ChatMessage.agent(reply));
+
+      // Voice output: if user spoke or voice feedback is enabled
+      if (SettingsService.instance.voiceFeedback || spoke) {
+        await VoiceService.instance.speak(reply);
+      }
     } on AiException catch (e) {
-      _log(ChatMessage.error('AI request failed: $e'));
+      final hint = isBengali
+          ? (isGf
+              ? 'বাবু, AI মডেলের সাথে সংযোগ করতে পারছি না ($e)। Settings থেকে একটি ফ্রি Google Gemini বা OpenAI API Key যোগ করে নাও সোনা!'
+              : 'AI মডেলের সাথে সংযোগ ব্যর্থ হয়েছে: $e। সেটিংস থেকে সঠিক API Key বা Ollama কনফিগারেশন চেক করুন।')
+          : 'AI connection failed: $e. Please verify your API Key or Ollama host in Settings.';
+      _log(ChatMessage.error(hint));
+      if (SettingsService.instance.voiceFeedback || spoke) {
+        await VoiceService.instance.speak(hint);
+      }
     } catch (e) {
-      _log(ChatMessage.error('Chat error: $e'));
+      final hint = isBengali
+          ? (isGf
+              ? 'ইশ সোনা! একটু সমস্যা হচ্ছে ($e)। তোমার ইন্টারনেট বা লোকাল AI ব্যাকএন্ড সচল আছে তো?'
+              : 'চ্যাট ত্রুটি: $e')
+          : 'Chat error: $e';
+      _log(ChatMessage.error(hint));
+      if (SettingsService.instance.voiceFeedback || spoke) {
+        await VoiceService.instance.speak(hint);
+      }
     } finally {
       _chatBusy = false;
       notifyListeners();
@@ -296,12 +320,18 @@ class TaskExecutor extends ChangeNotifier {
     try {
       // 1. Accessibility gate.
       if (!await _automation.isServiceEnabled()) {
-        _log(
-          ChatMessage.error(
-            'Accessibility service is OFF. Enable "Priya AI Screen '
-            'Control" in system settings, then retry.',
-          ),
-        );
+        final isGf = settings.girlfriendMode;
+        final isBengali = settings.voiceLanguage.startsWith('bn');
+        final msg = isBengali
+            ? (isGf
+                ? 'বাবু, তোমার ফোনে অটোমেশন চালানোর জন্য Accessibility সার্ভিসটি চালু করতে হবে। আমি স্ক্রিন সেটিংস পেজটি খুলে দিচ্ছি, প্রিয়া-কে অনুমতি দিয়ে দাও সোনা!'
+                : 'অটোমেশনের জন্য "Priya AI Screen Control" অ্যাক্সেসিবিলিটি সার্ভিস চালু করুন। সেটিংস ওপেন করা হচ্ছে...')
+            : 'Accessibility service is OFF. Please enable "Priya AI Screen Control" in system settings.';
+        _log(ChatMessage.error(msg));
+        if (settings.voiceFeedback) {
+          await VoiceService.instance.speak(msg);
+        }
+        await _automation.openAccessibilitySettings();
         return status;
       }
 

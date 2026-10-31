@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../services/settings_service.dart';
 import '../../services/telegram_service.dart';
+import '../../services/voice_service.dart';
+import '../../theme/app_theme.dart';
 
 /// Settings: AI provider, agent loop, Telegram remote control, appearance.
 class SettingsScreen extends StatefulWidget {
@@ -486,6 +488,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _settings.setVoiceLanguage(set.first),
                 ),
               ],
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.purpleLight,
+                side: BorderSide(color: AppTheme.purplePrimary.withValues(alpha: 0.6)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: const Icon(Icons.record_voice_over_rounded),
+              label: const Text('প্রিয়ার মিষ্টি কন্ঠ শুনুন (Test Voice)'),
+              onPressed: () async {
+                await VoiceService.instance.testPriyaVoice();
+              },
             ),
             const Divider(height: 16),
             SwitchListTile(
