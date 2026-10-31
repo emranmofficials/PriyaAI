@@ -196,9 +196,9 @@ class _OverlayAppState extends State<OverlayApp> {
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: AppTheme.slate900.withValues(alpha: 0.72),
+              color: AppTheme.obsidianSurface.withValues(alpha: 0.85),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(color: AppTheme.borderViolet.withValues(alpha: 0.5)),
             ),
             child: Column(
               children: [

@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             isListening: _listening,
             serviceEnabled: _serviceEnabled,
             overlayActive: _overlayActive,
-            onToggleVoice: _toggleVoice,
+            onToggleVoice: _toggleListening,
             onOpenKeyboard: () {
               setState(() => _selectedTab = 1);
             },
@@ -216,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _mode = AppMode.chat;
                 _selectedTab = 1;
               });
-              _toggleVoice();
+              _toggleListening();
             },
             onOpenTools: () {
               setState(() => _selectedTab = 3);

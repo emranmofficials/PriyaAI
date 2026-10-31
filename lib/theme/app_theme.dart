@@ -29,6 +29,19 @@ class AppTheme {
   static const textSecondary = Color(0xFF94A3B8);
   static const textMuted = Color(0xFF64748B);
 
+  // Backward compatibility aliases
+  static const slate50 = Color(0xFFFAF5FF);
+  static const slate100 = textPrimary;
+  static const slate200 = Color(0xFFE2E8F0);
+  static const slate300 = Color(0xFFCBD5E1);
+  static const slate400 = textSecondary;
+  static const slate500 = textMuted;
+  static const slate600 = Color(0xFF475569);
+  static const slate700 = borderViolet;
+  static const slate800 = obsidianElevated;
+  static const slate900 = obsidianSurface;
+  static const slate950 = obsidian;
+
   static ThemeData dark() {
     final scheme = ColorScheme.fromSeed(
       seedColor: purplePrimary,
