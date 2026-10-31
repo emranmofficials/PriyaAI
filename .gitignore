@@ -51,3 +51,4 @@ app.*.map.json
 **/android/**/GeneratedPluginRegistrant.java
 /android/build/
 /android/private_agent_android.iml
+build_output/

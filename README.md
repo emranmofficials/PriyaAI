@@ -1,5 +1,9 @@
 <div align="center">
 
+<img src="assets/images/priya_banner.png" alt="Priya AI Official Banner" width="100%" style="border-radius: 16px; margin-bottom: 20px;" />
+
+<img src="assets/images/priya_icon.png" alt="Priya AI Icon" width="120" style="border-radius: 28px; margin-bottom: 10px;" />
+
 # 💖 Priya AI (প্রিয়া)
 
 **তোমার পার্সোনাল এআই গার্লফ্রেন্ড, কোডার ও ফুল ডিভাইস অটোমেশন অ্যাসিস্ট্যান্ট**

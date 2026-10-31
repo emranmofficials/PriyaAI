@@ -15,6 +15,7 @@ import '../../widgets/status_chip.dart';
 import '../history/task_history_screen.dart';
 import '../sessions/session_detail_screen.dart';
 import '../settings/settings_screen.dart';
+import 'dashboard_tab.dart';
 
 /// Main screen: live task transcript, task input with voice, overlay toggle.
 class HomeScreen extends StatefulWidget {
@@ -35,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _overlayActive = false;
   bool _listening = false;
   AppMode _mode = AppMode.genie;
+  int _selectedTab = 0;
 
   /// True while either an agent task or a chat reply is in flight.
   bool get _busy => _executor.isBusy || _executor.isChatBusy;
@@ -94,6 +96,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final goal = text.trim();
     if (goal.isEmpty || _busy) return;
     _inputController.clear();
+    if (_selectedTab != 1) {
+      setState(() => _selectedTab = 1);
+    }
 
     // Owner security verification check
     final settings = SettingsService.instance;
@@ -182,50 +187,148 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     return Scaffold(
       drawer: _sessionsDrawer(theme),
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset('assets/icon/genie_logo.png', width: 30, height: 30),
-            const SizedBox(width: 10),
-            const Text('Priya AI'),
-            const SizedBox(width: 10),
-            ServiceStatusDot(enabled: _serviceEnabled),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: _overlayActive
-                ? 'Hide floating bubble'
-                : 'Show floating bubble',
-            onPressed: _toggleOverlay,
-            icon: Icon(
-              _overlayActive ? Icons.bubble_chart : Icons.bubble_chart_outlined,
-            ),
+      appBar: _buildAppBar(theme),
+      body: IndexedStack(
+        index: _selectedTab,
+        children: [
+          DashboardTab(
+            isListening: _listening,
+            serviceEnabled: _serviceEnabled,
+            overlayActive: _overlayActive,
+            onToggleVoice: _toggleVoice,
+            onOpenKeyboard: () {
+              setState(() => _selectedTab = 1);
+            },
+            onOpenAutomation: () {
+              setState(() {
+                _mode = AppMode.genie;
+                _selectedTab = 1;
+              });
+            },
+            onOpenCoding: () {
+              setState(() {
+                _selectedTab = 1;
+                _inputController.text = '! ';
+              });
+            },
+            onOpenVoiceChat: () {
+              setState(() {
+                _mode = AppMode.chat;
+                _selectedTab = 1;
+              });
+              _toggleVoice();
+            },
+            onOpenTools: () {
+              setState(() => _selectedTab = 3);
+            },
+            onToggleOverlay: _toggleOverlay,
           ),
-          IconButton(
-            tooltip: 'Task history',
-            icon: const Icon(Icons.history),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const TaskHistoryScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
+          _chatAndAutomationView(theme),
+          const TaskHistoryScreen(isEmbedded: true),
+          const SettingsScreen(isEmbedded: true),
         ],
       ),
-      body: Column(
+      bottomNavigationBar: _buildBottomNav(theme),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(ThemeData theme) {
+    return AppBar(
+      title: Row(
         children: [
-          if (!_serviceEnabled && _mode == AppMode.genie)
-            _serviceWarning(theme),
-          if (_executor.isBusy) _activeTaskBar(theme),
-          Expanded(child: _transcript(theme)),
-          _modeSwitcher(theme),
-          _inputBar(theme),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/images/priya_icon.png',
+              width: 30,
+              height: 30,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  Image.asset('assets/icon/genie_logo.png', width: 30, height: 30),
+            ),
+          ),
+          const SizedBox(width: 10),
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [AppTheme.textPrimary, AppTheme.purpleLight],
+            ).createShader(bounds),
+            child: const Text(
+              'Priya AI',
+              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ServiceStatusDot(enabled: _serviceEnabled),
+        ],
+      ),
+      actions: [
+        IconButton(
+          tooltip: _overlayActive
+              ? 'Hide floating bubble'
+              : 'Show floating bubble',
+          onPressed: _toggleOverlay,
+          icon: Icon(
+            _overlayActive ? Icons.bubble_chart : Icons.bubble_chart_outlined,
+            color: _overlayActive ? AppTheme.magentaAccent : null,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _chatAndAutomationView(ThemeData theme) {
+    return Column(
+      children: [
+        if (!_serviceEnabled && _mode == AppMode.genie)
+          _serviceWarning(theme),
+        if (_executor.isBusy) _activeTaskBar(theme),
+        Expanded(child: _transcript(theme)),
+        _modeSwitcher(theme),
+        _inputBar(theme),
+      ],
+    );
+  }
+
+  Widget _buildBottomNav(ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.obsidianSurface,
+        border: Border(
+          top: BorderSide(
+            color: AppTheme.borderViolet.withValues(alpha: 0.7),
+            width: 1,
+          ),
+        ),
+      ),
+      child: NavigationBar(
+        selectedIndex: _selectedTab,
+        onDestinationSelected: (i) => setState(() => _selectedTab = i),
+        backgroundColor: Colors.transparent,
+        indicatorColor: AppTheme.purplePrimary.withValues(alpha: 0.25),
+        elevation: 0,
+        height: 64,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded, color: AppTheme.purpleLight),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline_rounded),
+            selectedIcon: Icon(Icons.chat_bubble_rounded, color: AppTheme.purpleLight),
+            label: 'Chat & Auto',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history_rounded, color: AppTheme.purpleLight),
+            label: 'Logs',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings_rounded, color: AppTheme.purpleLight),
+            label: 'Settings',
+          ),
         ],
       ),
     );
@@ -243,16 +346,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           padding: EdgeInsets.zero,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/images/priya_banner.png',
+                      height: 100,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      Image.asset(
-                        'assets/icon/genie_logo.png',
-                        width: 26,
-                        height: 26,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          'assets/images/priya_icon.png',
+                          width: 26,
+                          height: 26,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            'assets/icon/genie_logo.png',
+                            width: 26,
+                            height: 26,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Text(

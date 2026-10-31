@@ -5,61 +5,68 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  // Slate palette
-  static const slate50 = Color(0xFFF8FAFC);
-  static const slate100 = Color(0xFFF1F5F9);
-  static const slate200 = Color(0xFFE2E8F0);
-  static const slate300 = Color(0xFFCBD5E1);
-  static const slate400 = Color(0xFF94A3B8);
-  static const slate500 = Color(0xFF64748B);
-  static const slate600 = Color(0xFF475569);
-  static const slate700 = Color(0xFF334155);
-  static const slate800 = Color(0xFF1E293B);
-  static const slate900 = Color(0xFF0F172A);
-  static const slate950 = Color(0xFF020617);
+  // Luxury Obsidian & Purple palette (from official Priya AI branding)
+  static const obsidian = Color(0xFF080410);
+  static const obsidianSurface = Color(0xFF130B24);
+  static const obsidianElevated = Color(0xFF1E1238);
+  static const obsidianCard = Color(0xFF160D2B);
+  static const borderViolet = Color(0xFF34225A);
 
   // Brand accents
-  static const indigo = Color(0xFF6366F1);
-  static const indigoLight = Color(0xFF818CF8);
+  static const purplePrimary = Color(0xFFA855F7);
+  static const purpleLight = Color(0xFFC084FC);
+  static const magentaAccent = Color(0xFFE879F9);
+  static const cyanAccent = Color(0xFF38BDF8);
+  static const indigo = Color(0xFF8B5CF6);
+  static const indigoLight = Color(0xFFA78BFA);
+
   static const success = Color(0xFF22C55E);
   static const danger = Color(0xFFEF4444);
   static const warning = Color(0xFFF59E0B);
 
+  // Neutral text
+  static const textPrimary = Color(0xFFF8FAFC);
+  static const textSecondary = Color(0xFF94A3B8);
+  static const textMuted = Color(0xFF64748B);
+
   static ThemeData dark() {
     final scheme = ColorScheme.fromSeed(
-      seedColor: indigo,
+      seedColor: purplePrimary,
       brightness: Brightness.dark,
-      surface: slate900,
+      surface: obsidianSurface,
     ).copyWith(
-      primary: indigoLight,
-      onPrimary: slate950,
-      surface: slate900,
-      surfaceContainerHighest: slate800,
-      onSurface: slate100,
-      onSurfaceVariant: slate400,
-      outline: slate700,
+      primary: purpleLight,
+      onPrimary: obsidian,
+      secondary: magentaAccent,
+      tertiary: cyanAccent,
+      surface: obsidianSurface,
+      surfaceContainerHighest: obsidianElevated,
+      onSurface: textPrimary,
+      onSurfaceVariant: textSecondary,
+      outline: borderViolet,
     );
     return _base(scheme).copyWith(
-      scaffoldBackgroundColor: slate950,
-      cardColor: slate900,
+      scaffoldBackgroundColor: obsidian,
+      cardColor: obsidianCard,
     );
   }
 
   static ThemeData light() {
     final scheme = ColorScheme.fromSeed(
-      seedColor: indigo,
+      seedColor: purplePrimary,
       brightness: Brightness.light,
-      surface: slate50,
+      surface: const Color(0xFFFAF5FF),
     ).copyWith(
-      primary: const Color(0xFF4F46E5),
-      surface: slate50,
+      primary: const Color(0xFF9333EA),
+      secondary: const Color(0xFFC026D3),
+      surface: const Color(0xFFFAF5FF),
       surfaceContainerHighest: Colors.white,
-      onSurface: slate900,
-      onSurfaceVariant: slate600,
-      outline: slate300,
+      onSurface: const Color(0xFF0F172A),
+      onSurfaceVariant: const Color(0xFF475569),
+      outline: const Color(0xFFE9D5FF),
     );
     return _base(scheme).copyWith(
-      scaffoldBackgroundColor: slate50,
+      scaffoldBackgroundColor: const Color(0xFFFAF5FF),
       cardColor: Colors.white,
     );
   }

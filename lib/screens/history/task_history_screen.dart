@@ -8,7 +8,8 @@ import '../../widgets/status_chip.dart';
 
 /// Detailed list of past tasks with status, step counts and full logs.
 class TaskHistoryScreen extends StatefulWidget {
-  const TaskHistoryScreen({super.key});
+  final bool isEmbedded;
+  const TaskHistoryScreen({super.key, this.isEmbedded = false});
 
   @override
   State<TaskHistoryScreen> createState() => _TaskHistoryScreenState();
@@ -60,6 +61,7 @@ class _TaskHistoryScreenState extends State<TaskHistoryScreen> {
     final entries = _executor.historyEntries;
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: !widget.isEmbedded,
         title: const Text('Task History'),
         actions: [
           if (entries.isNotEmpty)

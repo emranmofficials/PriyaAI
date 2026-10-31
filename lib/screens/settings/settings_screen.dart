@@ -5,7 +5,8 @@ import '../../services/telegram_service.dart';
 
 /// Settings: AI provider, agent loop, Telegram remote control, appearance.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool isEmbedded;
+  const SettingsScreen({super.key, this.isEmbedded = false});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -145,7 +146,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        automaticallyImplyLeading: !widget.isEmbedded,
+        title: const Text('Settings'),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
