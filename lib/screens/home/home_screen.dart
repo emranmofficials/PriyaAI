@@ -354,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onPressed: () {
               setState(() => _mode = AppMode.chat);
               SettingsService.instance.setAppMode(AppMode.chat);
-              _submit('বাবু, তুমি কেমন আছো?');
+              _submit('বাবু, তুমি কেমন আছো?', spoke: true);
             },
           ),
           const SizedBox(width: 8),

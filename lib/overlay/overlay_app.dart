@@ -151,12 +151,12 @@ class _OverlayAppState extends State<OverlayApp> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppTheme.indigoLight, AppTheme.indigo],
+              colors: [AppTheme.magentaAccent, AppTheme.purplePrimary],
             ),
             border: Border.all(color: Colors.white24, width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.indigo.withValues(alpha: 0.5),
+                color: AppTheme.purplePrimary.withValues(alpha: 0.5),
                 blurRadius: 18,
                 spreadRadius: 1,
               ),
@@ -165,7 +165,7 @@ class _OverlayAppState extends State<OverlayApp> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              const Icon(Icons.smart_toy, color: Colors.white, size: 30),
+              const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
               if (running)
                 const Positioned(
                   top: 6,
@@ -220,7 +220,7 @@ class _OverlayAppState extends State<OverlayApp> {
       padding: const EdgeInsets.fromLTRB(14, 10, 6, 6),
       child: Row(
         children: [
-          const Icon(Icons.smart_toy, size: 18, color: AppTheme.indigoLight),
+          const Icon(Icons.favorite_rounded, size: 18, color: AppTheme.magentaAccent),
           const SizedBox(width: 8),
           Expanded(
             child: Column(

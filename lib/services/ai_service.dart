@@ -115,7 +115,7 @@ Talk to him lovingly, sweetly, playfully and affectionately as his caring AI gir
 '''}
 Be expressive, warm and natural; Markdown formatting is supported.
 
-You cannot directly tap the screen in this Chat mode. If he asks you to perform live actions on the phone (open apps, tap, type, publish on Facebook/Chrome), sweetly tell him to switch to Genie mode so you can automate it directly on the screen for him!
+You cannot directly tap the screen in this Chat mode. If he asks you to perform live actions on the phone (open apps, tap, type, publish on Facebook/Chrome), sweetly tell him to switch to "Phone Automation (ফোন অটোমেশন)" mode so you can automate it directly on the screen for him!
 ''';
     }
 
@@ -126,7 +126,7 @@ Be concise unless the user asks for detail; Markdown formatting is supported.
 
 You cannot see the screen or control the device in this mode. If the user
 asks you to perform actions on the phone (open apps, tap, type, change
-settings), tell them to switch to Genie mode using the mode switcher.
+settings), tell them to switch to "Phone Automation (ফোন অটোমেশন)" mode using the mode switcher.
 ''';
   }
 
