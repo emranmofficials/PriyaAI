@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../services/ai_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/telegram_service.dart';
 import '../../services/voice_service.dart';
@@ -35,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _lastSyncedProvider = '';
   List<String> _ollamaModels = const [];
   bool _loadingOllamaModels = false;
+  bool _testingConnection = false;
 
   Future<void> _checkOllamaModels() async {
     if (!mounted) return;
@@ -143,6 +145,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+  }
+
+  Future<void> _testAiConnection() async {
+    if (_aiDirty) {
+      await _saveAiSettings();
+    }
+    setState(() => _testingConnection = true);
+    try {
+      final reply = await AiService.instance.testConnection();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppTheme.success,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'সংযোগ সফল হয়েছে! ($reply)',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppTheme.danger,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'সংযোগ ব্যর্থ: $e',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _testingConnection = false);
+    }
   }
 
   @override
@@ -330,14 +389,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            // Explicit save: provider fields are only persisted on tap.
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _aiDirty ? _saveAiSettings : null,
-                icon: const Icon(Icons.save_outlined),
-                label: Text(_aiDirty ? 'Save changes' : 'Saved'),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _aiDirty ? _saveAiSettings : null,
+                    icon: const Icon(Icons.save_outlined),
+                    label: Text(_aiDirty ? 'Save changes' : 'Saved'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: _testingConnection ? null : _testAiConnection,
+                  icon: _testingConnection
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.bolt_rounded),
+                  label: Text(_testingConnection ? 'Testing…' : 'Test'),
+                ),
+              ],
             ),
             if (_aiDirty)
               const Padding(

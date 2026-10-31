@@ -156,6 +156,9 @@ settings), tell them to switch to "Phone Automation (ফোন অটোমে�
         'content': 'GOAL: $goal\n\nCURRENT SCREEN:\n$screenDescription',
       },
     ];
+    if (settings.provider == 'gemini') {
+      return _geminiGenerateContent(messages, settings);
+    }
     return _postChatCompletion(messages, settings);
   }
 
@@ -171,7 +174,158 @@ settings), tell them to switch to "Phone Automation (ফোন অটোমে�
       ...history,
       {'role': 'user', 'content': message},
     ];
+    if (settings.provider == 'gemini') {
+      return _geminiGenerateContent(messages, settings);
+    }
     return _postChatCompletion(messages, settings);
+  }
+
+  /// Quick health check to verify the current AI provider & API key.
+  Future<String> testConnection() async {
+    final settings = SettingsService.instance;
+    if (settings.provider == 'gemini') {
+      return _geminiGenerateContent([
+        {'role': 'user', 'content': 'Hello! Respond with "OK - Google Gemini is working perfectly!"'},
+      ], settings);
+    }
+    return _postChatCompletion([
+      {'role': 'user', 'content': 'Hello! Respond with "OK - Connection working!"'},
+    ], settings);
+  }
+
+  /// Direct Google Gemini REST API caller (v1beta/models/{model}:generateContent).
+  ///
+  /// Eliminates OpenAI-compatibility translation errors, supports standard
+  /// Google AI Studio API keys (`AIzaSy...`), and works natively.
+  Future<String> _geminiGenerateContent(
+    List<Map<String, String>> messages,
+    SettingsService settings,
+  ) async {
+    final key = settings.apiKey.trim();
+    if (key.isEmpty) {
+      throw const AiException(
+        'Gemini API Key দেওয়া হয়নি। অনুগ্রহ করে Settings থেকে আপনার Google Gemini API Key যোগ করে Save করুন।',
+      );
+    }
+
+    var model = settings.model.trim();
+    if (model.isEmpty) {
+      model = 'gemini-2.0-flash';
+    }
+    // Strip redundant models/ prefix if entered
+    model = model.replaceFirst(RegExp(r'^models/'), '');
+
+    final uri = Uri.parse(
+      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$key',
+    );
+
+    String? systemInstruction;
+    final contents = <Map<String, dynamic>>[];
+
+    for (final m in messages) {
+      final role = m['role'] ?? 'user';
+      final text = m['content'] ?? '';
+      if (text.trim().isEmpty) continue;
+
+      if (role == 'system') {
+        systemInstruction = (systemInstruction == null)
+            ? text
+            : '$systemInstruction\n\n$text';
+      } else if (role == 'assistant' || role == 'model') {
+        contents.add({
+          'role': 'model',
+          'parts': [{'text': text}],
+        });
+      } else {
+        contents.add({
+          'role': 'user',
+          'parts': [{'text': text}],
+        });
+      }
+    }
+
+    if (contents.isEmpty) {
+      contents.add({
+        'role': 'user',
+        'parts': [{'text': 'Hello'}],
+      });
+    }
+
+    final body = <String, dynamic>{
+      'contents': contents,
+      if (systemInstruction != null && systemInstruction.isNotEmpty)
+        'systemInstruction': {
+          'parts': [{'text': systemInstruction}],
+        },
+      'generationConfig': {
+        'temperature': settings.temperature,
+        if (settings.maxTokens > 0) 'maxOutputTokens': settings.maxTokens,
+      },
+    };
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': key,
+    };
+
+    http.Response res;
+    try {
+      res = await _client
+          .post(uri, headers: headers, body: jsonEncode(body))
+          .timeout(const Duration(seconds: 60));
+    } on TimeoutException {
+      throw const AiException('Gemini সার্ভার থেকে ৬০ সেকেন্ডে কোনো উত্তর আসেনি (Timeout)।');
+    } catch (e) {
+      throw AiException('Gemini নেটওয়ার্ক এরর: $e');
+    }
+
+    if (res.statusCode != 200) {
+      try {
+        final errJson = jsonDecode(utf8.decode(res.bodyBytes));
+        final errMsg = errJson['error']?['message'] ?? res.body;
+        if (res.statusCode == 400 && errMsg.toString().contains('API_KEY_INVALID')) {
+          throw const AiException(
+            'Gemini API Key সঠিক নয় (Invalid API Key)। দয়া করে Google AI Studio থেকে নতুন একটি সঠিক কি কপি করে দিন।',
+            statusCode: 400,
+          );
+        }
+        throw AiException('Gemini এরর: $errMsg', statusCode: res.statusCode);
+      } catch (e) {
+        if (e is AiException) rethrow;
+        final snippet = res.body.length > 250 ? '${res.body.substring(0, 250)}…' : res.body;
+        throw AiException('Gemini এরর ($snippet)', statusCode: res.statusCode);
+      }
+    }
+
+    try {
+      final decoded = jsonDecode(utf8.decode(res.bodyBytes));
+      final candidates = decoded['candidates'] as List?;
+      if (candidates == null || candidates.isEmpty) {
+        final promptFeedback = decoded['promptFeedback'];
+        if (promptFeedback != null) {
+          throw AiException('Gemini সেফটি ব্লক: $promptFeedback');
+        }
+        throw const AiException('Gemini থেকে কোনো রেসপন্স পাওয়া যায়নি।');
+      }
+
+      final first = candidates.first as Map<String, dynamic>?;
+      final content = first?['content'] as Map<String, dynamic>?;
+      final parts = content?['parts'] as List?;
+      if (parts == null || parts.isEmpty) {
+        throw const AiException('Gemini রেসপন্স খালি এসেছে।');
+      }
+
+      final textResult = parts
+          .map((p) => p is Map ? (p['text'] ?? '') : '$p')
+          .join();
+      if (textResult.trim().isNotEmpty) return textResult;
+
+      throw const AiException('Gemini কোনো টেক্সট রিটার্ন করেনি।');
+    } on AiException {
+      rethrow;
+    } catch (e) {
+      throw AiException('Gemini উত্তর প্রসেস করতে ব্যর্থ হয়েছে: $e');
+    }
   }
 
   /// Shared request/response plumbing for [complete] and [chat].
@@ -191,13 +345,19 @@ settings), tell them to switch to "Phone Automation (ফোন অটোমে�
       throw const AiException('No model name configured.');
     }
 
+    final isGeminiEndpoint = settings.provider == 'gemini' ||
+        settings.baseUrl.contains('googleapis.com');
     final base = settings.baseUrl.replaceAll(RegExp(r'/+$'), '');
-    final uri = Uri.parse('$base/chat/completions');
+    final uri = isGeminiEndpoint && settings.apiKey.isNotEmpty
+        ? Uri.parse('$base/chat/completions?key=${settings.apiKey}')
+        : Uri.parse('$base/chat/completions');
 
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      if (settings.apiKey.isNotEmpty)
+      if (settings.apiKey.isNotEmpty) ...{
         'Authorization': 'Bearer ${settings.apiKey}',
+        if (isGeminiEndpoint) 'x-goog-api-key': settings.apiKey,
+      },
       // Some gateways sit behind Cloudflare-style bot protection that
       // rejects non-browser clients by signature (HTTP 403, "error code:
       // 1010"). Presenting a browser-like User-Agent keeps those

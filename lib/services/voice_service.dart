@@ -47,10 +47,20 @@ class VoiceService {
   Future<void> initTts({String? lang}) async {
     final targetLang = lang ?? SettingsService.instance.voiceLanguage;
     try {
+      // 1. Explicitly select Google TTS Engine for neural WaveNet voices if present
+      final engines = await _tts.getEngines;
+      if (engines is List) {
+        final engineList = engines.map((e) => e.toString().toLowerCase()).toList();
+        if (engineList.contains('com.google.android.tts')) {
+          await _tts.setEngine('com.google.android.tts');
+        }
+      }
+
       await _tts.setLanguage(targetLang);
-      // Sweet, natural female voice pitch and rate
-      await _tts.setPitch(1.22);
-      await _tts.setSpeechRate(0.48);
+      // Sweet, natural human female voice pitch & conversational pacing
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.25);
+      await _tts.setSpeechRate(0.46);
 
       // Select female voice if available on Android
       await _configureFemaleVoice(targetLang);
@@ -59,8 +69,8 @@ class VoiceService {
     } catch (_) {
       try {
         await _tts.setLanguage('en-US');
-        await _tts.setPitch(1.2);
-        await _tts.setSpeechRate(0.5);
+        await _tts.setPitch(1.22);
+        await _tts.setSpeechRate(0.48);
         _ttsReady = true;
       } catch (_) {
         _ttsReady = false;
@@ -82,27 +92,58 @@ class VoiceService {
 
         if (matchingVoices.isEmpty) return;
 
-        // Prefer explicitly female voices
+        // Strictly identify and filter out ANY male voice tokens
+        // Note: In Google TTS, "bif" and "bad" are male Bengali voices.
+        bool isMale(String name) {
+          final n = name.toLowerCase();
+          return n.contains('male') ||
+              n.contains('guy') ||
+              n.contains('boy') ||
+              n.contains('man') ||
+              n.contains('bif') ||
+              n.contains('bad');
+        }
+
+        // 1. Priority: Google Neural Network Female Voice (WaveNet quality)
         Map? bestVoice;
         for (final v in matchingVoices) {
           final name = (v['name'] ?? '').toString().toLowerCase();
-          if (name.contains('female') ||
-              name.contains('woman') ||
-              name.contains('girl')) {
+          if (isMale(name)) continue;
+          if (name.contains('ban-network') || name.contains('bin-network')) {
             bestVoice = v;
             break;
           }
         }
 
-        // Secondary preference: natural network voices, avoiding male tokens
+        // 2. Priority: Explicit female tag
         bestVoice ??= matchingVoices.firstWhere(
           (v) {
             final name = (v['name'] ?? '').toString().toLowerCase();
-            return !name.contains('male') &&
-                !name.contains('guy') &&
-                (name.contains('network') ||
-                    name.contains('ban') ||
-                    name.contains('bin'));
+            if (isMale(name)) return false;
+            return name.contains('female') ||
+                name.contains('woman') ||
+                name.contains('girl');
+          },
+          orElse: () => <dynamic, dynamic>{},
+        );
+        if (bestVoice.isEmpty) bestVoice = null;
+
+        // 3. Priority: High-quality local female voice (ban-local or bin-local)
+        bestVoice ??= matchingVoices.firstWhere(
+          (v) {
+            final name = (v['name'] ?? '').toString().toLowerCase();
+            if (isMale(name)) return false;
+            return name.contains('ban') || name.contains('bin');
+          },
+          orElse: () => <dynamic, dynamic>{},
+        );
+        if (bestVoice.isEmpty) bestVoice = null;
+
+        // 4. Fallback: Any voice that is strictly NOT male
+        bestVoice ??= matchingVoices.firstWhere(
+          (v) {
+            final name = (v['name'] ?? '').toString().toLowerCase();
+            return !isMale(name);
           },
           orElse: () => matchingVoices.first,
         );
