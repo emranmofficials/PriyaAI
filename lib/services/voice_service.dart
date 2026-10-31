@@ -1,7 +1,9 @@
 import 'dart:convert';
-import 'package:audioplayers/audioplayers.dart';
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -14,9 +16,11 @@ class VoiceService {
   VoiceService._();
   static final VoiceService instance = VoiceService._();
 
+  static const MethodChannel _nativeChannel =
+      MethodChannel('com.privateagent/accessibility');
+
   final SpeechToText _speech = SpeechToText();
   final FlutterTts _tts = FlutterTts();
-  final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool _speechReady = false;
   bool _ttsReady = false;
@@ -273,8 +277,10 @@ class VoiceService {
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
-        await _audioPlayer.stop();
-        await _audioPlayer.play(BytesSource(response.bodyBytes));
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/elevenlabs_priya.mp3');
+        await tempFile.writeAsBytes(response.bodyBytes, flush: true);
+        await _nativeChannel.invokeMethod('playAudio', {'path': tempFile.path});
         return true;
       }
     } catch (_) {
@@ -288,7 +294,7 @@ class VoiceService {
       await _tts.stop();
     } catch (_) {}
     try {
-      await _audioPlayer.stop();
+      await _nativeChannel.invokeMethod('stopAudio');
     } catch (_) {}
   }
 

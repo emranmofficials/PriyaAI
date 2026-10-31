@@ -1,6 +1,7 @@
 package com.privateagent.private_agent
 
 import android.content.Intent
+import android.media.MediaPlayer
 import android.net.Uri
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
@@ -14,6 +15,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     private val channelName = "com.privateagent/accessibility"
+    private var mediaPlayer: MediaPlayer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -130,8 +132,54 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
+                    "playAudio" -> {
+                        val path = call.argument<String>("path")
+                        if (path != null) {
+                            try {
+                                mediaPlayer?.release()
+                                mediaPlayer = MediaPlayer().apply {
+                                    setDataSource(path)
+                                    prepare()
+                                    start()
+                                    setOnCompletionListener { mp ->
+                                        mp.release()
+                                        if (mediaPlayer == mp) {
+                                            mediaPlayer = null
+                                        }
+                                    }
+                                }
+                                result.success(true)
+                            } catch (e: Exception) {
+                                result.error("AUDIO_ERROR", e.localizedMessage, null)
+                            }
+                        } else {
+                            result.error("INVALID_ARGS", "Missing audio path", null)
+                        }
+                    }
+
+                    "stopAudio" -> {
+                        try {
+                            if (mediaPlayer?.isPlaying == true) {
+                                mediaPlayer?.stop()
+                            }
+                            mediaPlayer?.release()
+                            mediaPlayer = null
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onDestroy() {
+        try {
+            mediaPlayer?.release()
+            mediaPlayer = null
+        } catch (_: Exception) {}
+        super.onDestroy()
     }
 }
