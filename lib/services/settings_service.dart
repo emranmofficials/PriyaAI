@@ -26,12 +26,9 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
-    if (elevenLabsApiKey.isEmpty) {
-      await _prefs?.setString(
-        'elevenlabs_api_key',
-        'sk_bd52a17e3062460f990dcf182afab54aac5452f8a147ddfe',
-      );
-    }
+    // API keys are supplied by the user in Settings (or already stored from a
+    // previous session). Never ship a hardcoded credential: it is exposed in
+    // source control, shared across all installs and wastes the owner's quota.
   }
 
   // ------------------------------------------------------------------
