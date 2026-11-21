@@ -1,0 +1,196 @@
+{
+  "_comment": [
+    "Declarative Macros for Priya AI. 100% mirrors Maya's builtin_macros.json architecture",
+    "with full Bengali intent recognition and robust screen automation."
+  ],
+  "version": 4,
+  "macros": [
+    {
+      "name": "chatgpt image",
+      "intent": "ChatGPT অ্যাপে ছবি তৈরি করো এবং গ্যালারিতে সেভ করো",
+      "aliases": [
+        "chatgpt image",
+        "chatgpt দিয়ে ছবি বানাও",
+        "chatgpt তে ছবি তৈরি করো",
+        "chatgpt se image generate karo"
+      ],
+      "params": ["image prompt"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "ChatGPT" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        {
+          "tool": "tap_text",
+          "args": { "text": "New chat", "_optional": true }
+        },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "type_text", "args": { "text": "Create an image: {image_prompt}" } },
+        { "tool": "tap_text", "args": { "text": "Send Message" } },
+        { "tool": "wait", "args": { "seconds": 6 } },
+        {
+          "tool": "wait_for_screen_text",
+          "args": { "text": "Creating image", "mode": "disappear", "timeout_seconds": 300 }
+        },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Share" } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "Download" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "go_back", "args": {} }
+      ]
+    },
+    {
+      "name": "gemini image",
+      "intent": "Gemini অ্যাপে ইমেজ টুল দিয়ে ছবি তৈরি করো এবং সেভ করো",
+      "aliases": [
+        "gemini image",
+        "gemini দিয়ে ছবি বানাও",
+        "জেমিনি তে ছবি তৈরি করো",
+        "gemini se image generate karo"
+      ],
+      "params": ["image prompt"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "Gemini" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "New chat", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Add attachments" } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "Images" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "type_text", "args": { "text": "{image_prompt}" } },
+        { "tool": "tap_text", "args": { "text": "Send" } },
+        {
+          "tool": "wait_for_screen_text",
+          "args": { "text": "Generated image", "mode": "appear", "timeout_seconds": 300 }
+        },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        {
+          "tool": "tap_text",
+          "args": { "text": "Generated image 1" }
+        },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Save" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "go_back", "args": {} }
+      ]
+    },
+    {
+      "name": "gemini video",
+      "intent": "Gemini অ্যাপে ভিডিও টুল দিয়ে ভিডিও বানাও এবং সেভ করো",
+      "aliases": [
+        "gemini video",
+        "gemini দিয়ে ভিডিও বানাও",
+        "জেমিনি তে ভিডিও তৈরি করো",
+        "gemini se video generate karo"
+      ],
+      "params": ["video prompt"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "Gemini" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "New chat", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Add attachments" } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "Videos" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "type_text", "args": { "text": "{video_prompt}" } },
+        { "tool": "tap_text", "args": { "text": "Send" } },
+        {
+          "tool": "wait_for_screen_text",
+          "args": { "text": "Your video is ready", "mode": "appear", "timeout_seconds": 600 }
+        },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        {
+          "tool": "tap_text",
+          "args": { "text": "More options" }
+        },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "Save video" } },
+        { "tool": "wait", "args": { "seconds": 4 } }
+      ]
+    },
+    {
+      "name": "chatgpt se poochho",
+      "intent": "ChatGPT অ্যাপে প্রশ্ন করো এবং উত্তর পড়ে শোনাও",
+      "aliases": [
+        "chatgpt ask",
+        "chatgpt কে জিজ্ঞেস করো",
+        "chatgpt তে প্রশ্ন করো"
+      ],
+      "params": ["sawaal"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "ChatGPT" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "New chat", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "type_text", "args": { "text": "{sawaal}" } },
+        { "tool": "tap_text", "args": { "text": "Send Message" } },
+        { "tool": "wait", "args": { "seconds": 12 } },
+        { "tool": "read_screen_text", "args": {} }
+      ]
+    },
+    {
+      "name": "gemini se poochho",
+      "intent": "Gemini অ্যাপে প্রশ্ন করো এবং উত্তর পড়ে শোনাও",
+      "aliases": [
+        "gemini ask",
+        "gemini কে জিজ্ঞেস করো",
+        "জেমিনি তে প্রশ্ন করো"
+      ],
+      "params": ["sawaal"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "Gemini" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "New chat", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "type_text", "args": { "text": "{sawaal}" } },
+        { "tool": "tap_text", "args": { "text": "Send" } },
+        { "tool": "wait", "args": { "seconds": 12 } },
+        { "tool": "read_screen_text", "args": {} }
+      ]
+    },
+    {
+      "name": "youtube play",
+      "intent": "ইউটিউবে গান অথবা ভিডিও সার্চ করে প্লে করো",
+      "aliases": [
+        "youtube play",
+        "গান চালাও",
+        "ইউটিউবে গান চালাও",
+        "ইউটিউব চালাও"
+      ],
+      "params": ["video title"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "YouTube" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "Search", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "type_text", "args": { "text": "{video_title}" } },
+        { "tool": "press_enter", "args": {} },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "{video_title}", "_optional": true } }
+      ]
+    },
+    {
+      "name": "whatsapp message",
+      "intent": "হোয়াটসঅ্যাপে কাউকে মেসেজ পাঠাও",
+      "aliases": [
+        "whatsapp send",
+        "হোয়াটসঅ্যাপে মেসেজ পাঠাও",
+        "মেসেজ পাঠাও"
+      ],
+      "params": ["contact", "message"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "WhatsApp" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Search", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "type_text", "args": { "text": "{contact}" } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "{contact}" } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "type_text", "args": { "text": "{message}" } },
+        { "tool": "tap_text", "args": { "text": "Send" } }
+      ]
+    }
+  ]
+}

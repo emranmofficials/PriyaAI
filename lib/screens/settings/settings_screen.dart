@@ -617,6 +617,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(height: 16),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              title: const Text('Maya Drama & Nakhre Mode',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text(
+                  'Theatrical big reactions, pouting, emotional teasing and sulking',
+                  style: TextStyle(fontSize: 12)),
+              value: _settings.mayaDramaMode,
+              onChanged: (v) => _settings.setMayaDramaMode(v),
+            ),
+            const Divider(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('R-rated Mode (18+)',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text(
+                  'Talks openly about physical intimacy and romance without lectures',
+                  style: TextStyle(fontSize: 12)),
+              value: _settings.mayaAdultRated,
+              onChanged: (v) => _settings.setMayaAdultRated(v),
+            ),
+            const Divider(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
               title: const Text('Anti-Theft Security Guardian',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               subtitle: const Text(

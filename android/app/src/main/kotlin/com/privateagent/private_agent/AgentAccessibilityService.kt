@@ -264,6 +264,106 @@ class AgentAccessibilityService : AccessibilityService() {
         return null
     }
     // ------------------------------------------------------------------
+    // Declarative Macro Primitives (Matching Maya builtin_macros)
+    // ------------------------------------------------------------------
+
+    /**
+     * Looks up a node matching [text] (case-insensitive substring) in the UI tree
+     * and performs a click or simulated touch gesture at its center point.
+     * If not found and [optional] is true, gracefully succeeds without error.
+     */
+    fun tapText(text: String, optional: Boolean, result: MethodChannel.Result) {
+        val root = rootInActiveWindow
+        if (root == null) {
+            if (optional) result.success(true)
+            else result.error("NO_WINDOW", "No active window found", null)
+            return
+        }
+
+        val target = findNodeByText(root, text.trim().lowercase())
+        if (target != null) {
+            val rect = Rect()
+            target.getBoundsInScreen(rect)
+            if (rect.width() > 0 && rect.height() > 0) {
+                // Try native click first
+                if (target.isClickable && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    result.success(true)
+                    return
+                }
+                // Check clickable parent
+                var parent = target.parent
+                while (parent != null) {
+                    if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                        result.success(true)
+                        return
+                    }
+                    parent = parent.parent
+                }
+                // Fallback to coordinates tap
+                clickAt(rect.centerX().toFloat(), rect.centerY().toFloat(), result)
+                return
+            }
+        }
+
+        if (optional) {
+            result.success(true)
+        } else {
+            result.error("NOT_FOUND", "Label '$text' not found on screen", null)
+        }
+    }
+
+    private fun findNodeByText(node: AccessibilityNodeInfo?, target: String): AccessibilityNodeInfo? {
+        if (node == null || !node.isVisibleToUser) return null
+        val label = (node.text?.toString().orEmpty() + " " + node.contentDescription?.toString().orEmpty()).lowercase()
+        if (label.contains(target)) return node
+        for (i in 0 until node.childCount) {
+            val found = findNodeByText(node.getChild(i), target)
+            if (found != null) return found
+        }
+        return null
+    }
+
+    fun hasTextOnScreen(target: String): Boolean {
+        val root = rootInActiveWindow ?: return false
+        return findNodeByText(root, target.trim().lowercase()) != null
+    }
+
+    /**
+     * Polls the screen hierarchy until [text] appears (mode == "appear")
+     * or disappears (mode == "disappear"), with a timeout.
+     */
+    fun waitForScreenText(
+        text: String,
+        mode: String,
+        timeoutSeconds: Int,
+        result: MethodChannel.Result
+    ) {
+        val lowerTarget = text.trim().lowercase()
+        val disappearMode = mode.lowercase() == "disappear"
+        val start = System.currentTimeMillis()
+        val timeoutMs = timeoutSeconds * 1000L
+
+        fun check() {
+            val hasText = hasTextOnScreen(lowerTarget)
+            val satisfied = if (disappearMode) !hasText else hasText
+
+            if (satisfied) {
+                result.success(true)
+                return
+            }
+
+            if (System.currentTimeMillis() - start > timeoutMs) {
+                result.success(false) // Timed out
+                return
+            }
+
+            mainHandler.postDelayed({ check() }, 400L)
+        }
+
+        check()
+    }
+
+    // ------------------------------------------------------------------
     // Text input
     // ------------------------------------------------------------------
 

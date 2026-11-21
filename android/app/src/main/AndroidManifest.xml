@@ -30,6 +30,15 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.SET_ALARM" />
 
+    <!-- Termux Background Bridge -->
+    <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
+
+    <!-- Phone calls & Boot recovery -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <application
         android:label="Priya AI"
         android:name="${applicationName}"
@@ -57,6 +66,15 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- Automated screen wake-up & unlock activity -->
+        <activity
+            android:name=".PriyaUnlockActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true"
+            android:exported="false" />
         <!-- PrivateAgent accessibility service: reads screen hierarchy and
              performs gestures (tap, swipe, scroll, type) on behalf of the user. -->
         <service
@@ -90,6 +108,63 @@
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
+        <!-- Termux background result receiver -->
+        <receiver
+            android:name=".TermuxResultReceiver"
+            android:exported="true"
+            android:permission="com.termux.permission.RUN_COMMAND">
+            <intent-filter>
+                <action android:name="com.privateagent.private_agent.TERMUX_RESULT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Boot receiver for 24/7 background recovery -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Phone call screening & announcer receiver -->
+        <receiver
+            android:name=".PhoneCallReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Default Digital Assistant Voice Interaction Service (Replaces Google Assistant) -->
+        <service
+            android:name=".PriyaVoiceInteractionService"
+            android:exported="true"
+            android:label="Priya AI Assistant"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction_service" />
+        </service>
+
+        <service
+            android:name=".PriyaVoiceInteractionSessionService"
+            android:permission="android.permission.BIND_VOICE_INTERACTION" />
+
+        <!-- Notification Listener Service for WhatsApp, SMS, Telegram listening & replying -->
+        <service
+            android:name=".PriyaNotificationListenerService"
+            android:exported="true"
+            android:label="Priya Notification Listener"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

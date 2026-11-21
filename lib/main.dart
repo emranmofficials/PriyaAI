@@ -7,6 +7,10 @@ import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'app.dart';
 import 'overlay/overlay_app.dart';
 import 'services/hermes_memory_service.dart';
+import 'services/macro_runner_service.dart';
+import 'services/notification_intelligence_service.dart';
+import 'services/priya_driving_service.dart';
+import 'services/priya_nudge_service.dart';
 import 'services/screen_automation_service.dart';
 import 'services/settings_service.dart';
 import 'services/task_executor.dart';
@@ -19,9 +23,14 @@ Future<void> main() async {
   await settings.init();
 
   await HermesMemoryService.instance.init();
+  await MacroRunnerService.instance.init();
+  await PriyaDrivingService.instance.init();
 
   final executor = TaskExecutor.instance;
   await executor.init();
+
+  NotificationIntelligenceService.instance.start();
+  PriyaNudgeService.instance.start();
 
   _wireTelegram(executor, settings);
   _wireOverlayCommands(executor);

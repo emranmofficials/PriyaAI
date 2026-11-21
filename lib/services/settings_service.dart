@@ -337,4 +337,32 @@ class SettingsService extends ChangeNotifier {
     await _prefs?.setString('elevenlabs_voice_id', value.trim());
     notifyListeners();
   }
+
+  /// Active Persona: 'maya' (default, emotional AI girlfriend), 'friday' (tech assistant), 'venom' (deep bold)
+  String get activePersona => _prefs?.getString('active_persona') ?? 'maya';
+  Future<void> setActivePersona(String value) async {
+    await _prefs?.setString('active_persona', value.trim().toLowerCase());
+    notifyListeners();
+  }
+
+  /// Maya Voice Profile: 'kore', 'leda', 'aoede'
+  String get mayaVoiceProfile => _prefs?.getString('maya_voice_profile') ?? 'kore';
+  Future<void> setMayaVoiceProfile(String value) async {
+    await _prefs?.setString('maya_voice_profile', value.trim().toLowerCase());
+    notifyListeners();
+  }
+
+  /// Maya Drama / Nakhre Mode: Theatrical big reactions, crying, laughing, affection
+  bool get mayaDramaMode => _prefs?.getBool('maya_drama_mode') ?? true;
+  Future<void> setMayaDramaMode(bool value) async {
+    await _prefs?.setBool('maya_drama_mode', value);
+    notifyListeners();
+  }
+
+  /// Maya R-rated Adult Mode (matches Maya's settings_core_adult_rated_title)
+  bool get mayaAdultRated => _prefs?.getBool('maya_adult_rated') ?? false;
+  Future<void> setMayaAdultRated(bool value) async {
+    await _prefs?.setBool('maya_adult_rated', value);
+    notifyListeners();
+  }
 }

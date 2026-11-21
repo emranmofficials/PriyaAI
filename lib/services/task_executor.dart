@@ -14,6 +14,7 @@ import '../models/task_step.dart';
 import 'ai_service.dart';
 import 'app_launcher_service.dart';
 import 'hermes_memory_service.dart';
+import 'macro_runner_service.dart';
 import 'recovery_engine.dart';
 import 'screen_automation_service.dart';
 import 'settings_service.dart';
@@ -335,7 +336,26 @@ class TaskExecutor extends ChangeNotifier {
         return status;
       }
 
-      // 2. Skill memory fast path.
+      // 2. Maya Declarative Macro Fast Path (Zero token cost)
+      final macro = MacroRunnerService.instance.findMatchingMacro(goal);
+      if (macro != null) {
+        _log(ChatMessage.system('Found matching pre-trained macro: "${macro['name']}". Executing...'));
+        final ok = await MacroRunnerService.instance.executeMacro(
+          macro: macro,
+          parameterValue: goal,
+          onProgress: (msg) {
+            _log(ChatMessage.system(msg));
+            _broadcastOverlay();
+          },
+        );
+        if (ok) {
+          status = TaskStatus.completed;
+          _log(ChatMessage.assistant('ম্যাক্রো সফলভাবে সম্পন্ন হয়েছে সোনা! [happy]'));
+          return status;
+        }
+      }
+
+      // 3. Skill memory fast path.
       if (settings.skillsEnabled) {
         final skill = await _skills.findMatch(goal);
         if (skill != null) {
@@ -551,6 +571,28 @@ class TaskExecutor extends ChangeNotifier {
           final ms = (step.intParam('ms') ?? 1500).clamp(100, 10000);
           await Future.delayed(Duration(milliseconds: ms));
           return true;
+        case 'tap_text':
+          final text = step.stringParam('text') ?? '';
+          final optional = step.boolParam('optional') ?? false;
+          return _automation.tapText(text, optional: optional);
+        case 'wait_for_screen_text':
+          final text = step.stringParam('text') ?? '';
+          final mode = step.stringParam('mode') ?? 'appear';
+          final timeout = step.intParam('timeoutSeconds') ?? 30;
+          return _automation.waitForScreenText(text, mode: mode, timeoutSeconds: timeout);
+        case 'execute_termux':
+          final cmd = step.stringParam('command') ?? '';
+          final res = await _automation.executeTermuxCommand(cmd);
+          _log(ChatMessage.system('Termux command triggered (execId: ${res['execId']})'));
+          return res['started'] == true;
+        case 'answer_call':
+          return _automation.answerCall();
+        case 'reject_call':
+          return _automation.rejectCall();
+        case 'reply_notification':
+          final key = step.stringParam('key') ?? '';
+          final reply = step.stringParam('reply') ?? '';
+          return _automation.sendDirectReply(key, reply);
         default:
           return false;
       }

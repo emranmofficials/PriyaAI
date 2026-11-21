@@ -1,20 +1,34 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 
+import '../../models/chat_message.dart';
+import '../../services/priya_driving_service.dart';
+import '../../services/priya_wiki_service.dart';
 import '../../services/screen_automation_service.dart';
 import '../../services/security_guardian_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/task_executor.dart';
 import '../../services/voice_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/chat_bubble.dart';
-import '../../widgets/status_chip.dart';
-import '../../widgets/voice_waveform.dart';
+import '../../widgets/edge_glow.dart';
+import '../../widgets/maya_orb.dart';
+import '../accessibility/accessibility_doctor_screen.dart';
 import '../history/task_history_screen.dart';
+import '../macros/macro_center_screen.dart';
+import '../persona/persona_studio_screen.dart';
 import '../settings/settings_screen.dart';
+import '../terminal/terminal_reel_screen.dart';
 
-/// Main screen: unified Priya AI voice hub, live conversation, logs and settings.
+/// Maya-style Voice & Automation Hub — 100% identical to Maya's signature UI.
+///
+/// Features:
+/// - Screen-wide dynamic [EdgeGlow] neon border
+/// - Central procedural HUD [MayaOrb] (rotating gyro rings, acoustic rays, pulsing core)
+/// - Floating real-time conversational subtitles & status pill
+/// - Floating bottom dock with mic, keyboard drawer, and automation vision
+/// - Complete Maya Drawer (Voice Hub, Macros, Termux Reel, A11y Doctor, Persona Studio)
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -27,31 +41,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _automation = ScreenAutomationService.instance;
   final _voice = VoiceService.instance;
   final _inputController = TextEditingController();
-  final _scrollController = ScrollController();
 
   bool _serviceEnabled = false;
   bool _overlayActive = false;
   bool _listening = false;
-  AppMode _mode = AppMode.chat;
-  int _selectedTab = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  bool get _busy => _executor.isBusy || _executor.isChatBusy;
+  bool get _isThinking => _executor.isChatBusy || _executor.isBusy;
+  bool get _isSpeaking => _voice.isSpeaking;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _executor.addListener(_onExecutorUpdate);
-    _mode = SettingsService.instance.appMode;
+    _voice.addListener(_onVoiceUpdate);
+    _automation.onWakeWordDetected = (wakeWord) async {
+      if (!mounted) return;
+      await _voice.speak('[happy] বলো বাবু, শুনছি...');
+      if (!_listening) {
+        _toggleListening();
+      }
+    };
     _refreshStates();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _automation.onWakeWordDetected = null;
     _executor.removeListener(_onExecutorUpdate);
+    _voice.removeListener(_onVoiceUpdate);
     _inputController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -75,22 +96,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _onExecutorUpdate() {
-    if (!mounted) return;
-    setState(() {});
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    if (mounted) setState(() {});
+  }
+
+  void _onVoiceUpdate() {
+    if (mounted) setState(() {});
   }
 
   void _submit(String text, {bool spoke = false}) {
     final goal = text.trim();
-    if (goal.isEmpty || _busy) return;
+    if (goal.isEmpty || _isThinking) return;
     _inputController.clear();
 
     // Owner security verification check
@@ -110,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
-    if (_mode == AppMode.genie) {
+    if (settings.appMode == AppMode.genie) {
       _executor.executeTask(goal);
     } else {
       _executor.sendChatMessage(goal, spoke: spoke);
@@ -118,6 +133,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _toggleListening() async {
+    if (_voice.isSpeaking) {
+      await _voice.stopSpeaking();
+    }
     if (_listening) {
       await _voice.stopListening();
       setState(() => _listening = false);
@@ -143,9 +161,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!started && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Speech recognition unavailable — check microphone permission.',
-          ),
+          content: Text('Speech recognition unavailable — check microphone permission.'),
         ),
       );
     }
@@ -167,518 +183,568 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           width: 120,
           alignment: OverlayAlignment.centerRight,
           flag: OverlayFlag.defaultFlag,
-          overlayTitle: 'Priya AI',
-          overlayContent: 'Agent bubble active',
+          overlayTitle: 'Maya / Priya AI',
+          overlayContent: 'Floating orb active',
           enableDrag: true,
           positionGravity: PositionGravity.auto,
         );
       }
+      _refreshStates();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Overlay error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Overlay error: $e')),
+        );
       }
     }
-    await _refreshStates();
+  }
+
+  void _showTextInputSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.obsidianElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.chat_bubble_outline, color: AppTheme.neonCyan, size: 20),
+                const SizedBox(width: 10),
+                const Text(
+                  'Command / Message',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 20),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _inputController,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+              decoration: InputDecoration(
+                hintText: 'Type task or question (e.g. Open WhatsApp)...',
+                hintStyle: const TextStyle(color: AppTheme.textMuted),
+                filled: true,
+                fillColor: AppTheme.obsidianCard,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppTheme.borderViolet),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.send_rounded, color: AppTheme.neonCyan),
+                  onPressed: () {
+                    final txt = _inputController.text;
+                    Navigator.pop(ctx);
+                    _submit(txt);
+                  },
+                ),
+              ),
+              onSubmitted: (txt) {
+                Navigator.pop(ctx);
+                _submit(txt);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: _buildAppBar(theme),
-      body: IndexedStack(
-        index: _selectedTab,
-        children: [
-          _priyaMainView(theme),
-          const TaskHistoryScreen(isEmbedded: true),
-          const SettingsScreen(isEmbedded: true),
-        ],
-      ),
-      bottomNavigationBar: _buildBottomNav(theme),
-    );
-  }
+    final lastMessage = _executor.chatMessages.isNotEmpty ? _executor.chatMessages.last : null;
 
-  PreferredSizeWidget _buildAppBar(ThemeData theme) {
-    return AppBar(
-      title: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              'assets/images/priya_icon.png',
-              width: 28,
-              height: 28,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  Image.asset('assets/icon/genie_logo.png', width: 28, height: 28),
-            ),
-          ),
-          const SizedBox(width: 10),
-          ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: [AppTheme.textPrimary, AppTheme.purpleLight],
-            ).createShader(bounds),
-            child: const Text(
-              'Priya AI (প্রিয়া)',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-            ),
-          ),
-          const SizedBox(width: 8),
-          ServiceStatusDot(enabled: _serviceEnabled),
-        ],
-      ),
-      actions: [
-        if (_selectedTab == 0 && _executor.logs.isNotEmpty)
-          IconButton(
-            tooltip: 'Clear transcript',
-            icon: const Icon(Icons.delete_sweep_outlined, size: 22),
-            onPressed: () {
-              _executor.clearTranscript();
-              setState(() {});
-            },
-          ),
-        IconButton(
-          tooltip: _overlayActive
-              ? 'Hide floating bubble'
-              : 'Show floating bubble',
-          onPressed: _toggleOverlay,
-          icon: Icon(
-            _overlayActive ? Icons.bubble_chart : Icons.bubble_chart_outlined,
-            color: _overlayActive ? AppTheme.magentaAccent : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _priyaMainView(ThemeData theme) {
-    return Column(
-      children: [
-        // 1. Unified Dynamic Voice Waveform Hub
-        _buildVoiceHub(theme),
-
-        // 2. Service warning if needed
-        if (!_serviceEnabled && _mode == AppMode.genie)
-          _serviceWarning(theme),
-
-        // 3. Active automation task bar
-        if (_executor.isBusy)
-          _activeTaskBar(theme),
-
-        // 4. Live conversation / agent transcript
-        Expanded(child: _transcript(theme)),
-
-        // 5. Quick action prompt chips (Direct helpers without page jumping)
-        _buildQuickChips(theme),
-
-        // 6. Mode Switcher (Genie / Chat)
-        _modeSwitcher(theme),
-
-        // 7. Input bar with glowing mic & send
-        _inputBar(theme),
-      ],
-    );
-  }
-
-  Widget _buildVoiceHub(ThemeData theme) {
-    final isBusy = _executor.isBusy || _executor.isChatBusy;
-    final isBengali = SettingsService.instance.voiceLanguage.startsWith('bn');
-    final isGf = SettingsService.instance.girlfriendMode;
-
-    final String statusText;
-    if (_listening) {
-      statusText = isBengali
-          ? (isGf ? 'বাবু, আমি শুনছি... বলো সোনা! 💖' : 'শুনছি... বলুন!')
-          : 'Listening... speak now';
-    } else if (isBusy) {
-      statusText = isBengali
-          ? (isGf ? 'প্রিয়া ভাবছে ও উত্তর দিচ্ছে... 🥰' : 'প্রিয়া প্রসেস করছে...')
-          : 'Priya is thinking...';
-    } else {
-      statusText = isBengali
-          ? (isGf ? 'বাবু, আমি তোমার সাথে আছি! কিছু বলো? ✨' : 'কীভাবে সাহায্য করতে পারি?')
-          : 'How can I help you today?';
-    }
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 6, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.obsidianCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: (_listening || isBusy)
-              ? AppTheme.magentaAccent.withValues(alpha: 0.6)
-              : AppTheme.borderViolet.withValues(alpha: 0.5),
-          width: 1.2,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          VoiceWaveform(
-            isListening: _listening,
-            isSpeaking: isBusy,
-            height: 40,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            statusText,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: (_listening || isBusy)
-                  ? AppTheme.magentaAccent
-                  : AppTheme.purpleLight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickChips(ThemeData theme) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Row(
-        children: [
-          ActionChip(
-            avatar: const Icon(Icons.favorite_rounded, size: 15, color: AppTheme.magentaAccent),
-            label: const Text('💖 গল্প করো', style: TextStyle(fontSize: 11.5)),
-            backgroundColor: AppTheme.obsidianCard,
-            side: BorderSide(color: AppTheme.borderViolet.withValues(alpha: 0.6)),
-            onPressed: () {
-              setState(() => _mode = AppMode.chat);
-              SettingsService.instance.setAppMode(AppMode.chat);
-              _submit('বাবু, তুমি কেমন আছো?', spoke: true);
-            },
-          ),
-          const SizedBox(width: 8),
-          ActionChip(
-            avatar: const Icon(Icons.bolt_rounded, size: 15, color: AppTheme.purpleLight),
-            label: const Text('⚡ অ্যাপ অটোমেশন', style: TextStyle(fontSize: 11.5)),
-            backgroundColor: AppTheme.obsidianCard,
-            side: BorderSide(color: AppTheme.borderViolet.withValues(alpha: 0.6)),
-            onPressed: () {
-              setState(() => _mode = AppMode.genie);
-              SettingsService.instance.setAppMode(AppMode.genie);
-              _inputController.text = 'YouTube ওপেন করো';
-            },
-          ),
-          const SizedBox(width: 8),
-          ActionChip(
-            avatar: const Icon(Icons.terminal_rounded, size: 15, color: AppTheme.cyanAccent),
-            label: const Text('💻 কোড !cmd', style: TextStyle(fontSize: 11.5)),
-            backgroundColor: AppTheme.obsidianCard,
-            side: BorderSide(color: AppTheme.borderViolet.withValues(alpha: 0.6)),
-            onPressed: () {
-              _inputController.text = '! ';
-            },
-          ),
-          if (_executor.logs.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            ActionChip(
-              avatar: const Icon(Icons.cleaning_services_rounded, size: 15, color: AppTheme.textSecondary),
-              label: const Text('🧹 ক্লিয়ার', style: TextStyle(fontSize: 11.5)),
-              backgroundColor: AppTheme.obsidianCard,
-              side: BorderSide(color: AppTheme.borderViolet.withValues(alpha: 0.6)),
-              onPressed: () {
-                _executor.clearTranscript();
-                setState(() {});
-              },
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.obsidianSurface,
-        border: Border(
-          top: BorderSide(
-            color: AppTheme.borderViolet.withValues(alpha: 0.7),
-            width: 1,
-          ),
-        ),
-      ),
-      child: NavigationBar(
-        selectedIndex: _selectedTab,
-        onDestinationSelected: (i) => setState(() => _selectedTab = i),
-        backgroundColor: Colors.transparent,
-        indicatorColor: AppTheme.purplePrimary.withValues(alpha: 0.25),
-        elevation: 0,
-        height: 62,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.favorite_border_rounded),
-            selectedIcon: Icon(Icons.favorite_rounded, color: AppTheme.purpleLight),
-            label: 'প্রিয়া',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history_rounded, color: AppTheme.purpleLight),
-            label: 'লগস',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded, color: AppTheme.purpleLight),
-            label: 'সেটিংস',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _serviceWarning(ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      decoration: BoxDecoration(
-        color: AppTheme.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.4)),
-      ),
-      child: ListTile(
-        dense: true,
-        leading: const Icon(Icons.warning_amber_rounded, color: AppTheme.warning),
-        title: const Text(
-          'Accessibility service is off',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-        ),
-        subtitle: const Text(
-          'অটোমেশনের জন্য সার্ভিসটি অন করতে ট্যাপ করুন',
-          style: TextStyle(fontSize: 11.5),
-        ),
-        trailing: const Icon(Icons.chevron_right, size: 20),
-        onTap: () => _automation.openAccessibilitySettings(),
-      ),
-    );
-  }
-
-  Widget _activeTaskBar(ThemeData theme) {
-    final maxSteps = SettingsService.instance.maxSteps;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-      decoration: BoxDecoration(
-        color: AppTheme.purplePrimary.withValues(alpha: 0.08),
-        border: Border(
-          bottom: BorderSide(
-            color: AppTheme.borderViolet.withValues(alpha: 0.4),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  value: maxSteps == 0 ? null : _executor.step / maxSteps,
-                ),
-                Text(
-                  '${_executor.step}',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _executor.isPaused ? 'Paused' : 'Running task',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.5,
-                  ),
-                ),
-                Text(
-                  _executor.currentGoal ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: _executor.isPaused ? 'Resume' : 'Pause',
-            icon: Icon(
-              _executor.isPaused
-                  ? Icons.play_arrow_rounded
-                  : Icons.pause_rounded,
-            ),
-            onPressed: () =>
-                _executor.isPaused ? _executor.resume() : _executor.pause(),
-          ),
-          IconButton(
-            tooltip: 'Cancel task',
-            icon: const Icon(Icons.stop_rounded, color: AppTheme.danger),
-            onPressed: _executor.cancel,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _transcript(ThemeData theme) {
-    if (_executor.logs.isEmpty) {
-      final isGenie = _mode == AppMode.genie;
-      return Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    return EdgeGlow(
+      active: _listening || _isThinking || _isSpeaking,
+      isListening: _listening,
+      isSpeaking: _isSpeaking,
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: AppTheme.obsidian,
+        drawer: _buildMayaDrawer(),
+        body: SafeArea(
+          child: Stack(
             children: [
-              Icon(
-                isGenie ? Icons.auto_awesome : Icons.favorite_rounded,
-                size: 50,
-                color: AppTheme.purpleLight.withValues(alpha: 0.6),
+              // 1. Main Interactive Voice Canvas
+              Column(
+                children: [
+                  _buildTopBar(),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 10),
+
+                            // The Signature Maya HUD Orb
+                            MayaOrb(
+                              size: 240,
+                              isListening: _listening,
+                              isThinking: _isThinking,
+                              isSpeaking: _isSpeaking,
+                              onTap: _toggleListening,
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // State & Subtitle Card
+                            _buildSubtitleCard(lastMessage),
+
+                            const SizedBox(height: 120), // Bottom padding for dock
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                isGenie
-                    ? 'ফোনে কী কাজ করতে চাও সোনা?'
-                    : 'প্রিয়া AI এর সাথে কথা বলো',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isGenie
-                    ? 'যেমন: “YouTube ওপেন করে গান চালাও”\n'
-                          '“WhatsApp-এ মেসেজ পাঠাও”\n'
-                          '“Bluetooth অন করো”'
-                    : 'আমাকে যা খুশি প্রশ্ন করতে পারো সোনা,\n'
-                          'কোডিং, রোমান্টিক গল্প, অনুবাদ অথবা\n'
-                          'ফোনের যেকোনো টাস্ক অটোমেশন!',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                  height: 1.5,
-                ),
+
+              // 2. Floating Bottom Dock (Maya Capsule)
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 24,
+                child: _buildBottomDock(),
               ),
             ],
           ),
         ),
-      );
-    }
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      itemCount: _executor.logs.length,
-      itemBuilder: (_, i) => ChatBubble(message: _executor.logs[i]),
+      ),
     );
   }
 
-  Widget _inputBar(ThemeData theme) {
-    final isGenie = _mode == AppMode.genie;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-        child: Row(
-          children: [
-            // Text Input
-            Expanded(
-              child: TextField(
-                controller: _inputController,
-                enabled: !_busy,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (t) => _submit(t),
-                minLines: 1,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: _busy
-                      ? 'অপেক্ষা করো সোনা…'
-                      : (isGenie ? 'কাজের বিবরণ দাও…' : 'মেসেজ লেখো…'),
-                  prefixIcon: Icon(
-                    isGenie ? Icons.bolt_rounded : Icons.chat_bubble_outline_rounded,
-                    size: 20,
-                    color: AppTheme.purpleLight,
-                  ),
-                  filled: true,
-                  fillColor: AppTheme.obsidianCard,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: AppTheme.borderViolet.withValues(alpha: 0.6)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: AppTheme.borderViolet.withValues(alpha: 0.6)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(color: AppTheme.purplePrimary),
-                  ),
-                ),
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      child: Row(
+        children: [
+          // Drawer Menu Button
+          IconButton(
+            icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 26),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+
+          const Spacer(),
+
+          // Status Beacon Pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.obsidianElevated,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _listening
+                    ? AppTheme.neonCyan
+                    : _isSpeaking
+                        ? AppTheme.neonMagenta
+                        : _serviceEnabled
+                            ? AppTheme.neonEmerald.withValues(alpha: 0.5)
+                            : AppTheme.borderViolet,
               ),
             ),
-            const SizedBox(width: 8),
-
-            // Glowing Mic Button
-            GestureDetector(
-              onTap: _busy ? null : _toggleListening,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: _listening
-                        ? [AppTheme.danger, const Color(0xFFF43F5E)]
-                        : [AppTheme.magentaAccent, AppTheme.purplePrimary],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _listening
+                        ? AppTheme.neonCyan
+                        : _isSpeaking
+                            ? AppTheme.neonMagenta
+                            : _isThinking
+                                ? AppTheme.warning
+                                : _serviceEnabled
+                                    ? AppTheme.neonEmerald
+                                    : AppTheme.danger,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_listening ? AppTheme.neonCyan : AppTheme.neonEmerald).withValues(alpha: 0.7),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (_listening ? AppTheme.danger : AppTheme.purplePrimary)
-                          .withValues(alpha: 0.5),
-                      blurRadius: _listening ? 14 : 8,
-                      spreadRadius: 1,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _listening
+                      ? 'Listening...'
+                      : _isThinking
+                          ? 'Thinking...'
+                          : _isSpeaking
+                              ? 'Speaking...'
+                              : 'Live Standby',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Spacer(),
+
+          // Floating Overlay Toggle
+          IconButton(
+            icon: Icon(
+              _overlayActive ? Icons.picture_in_picture_alt : Icons.picture_in_picture_outlined,
+              color: _overlayActive ? AppTheme.neonCyan : AppTheme.textSecondary,
+              size: 22,
+            ),
+            tooltip: 'Toggle Floating Orb',
+            onPressed: _toggleOverlay,
+          ),
+
+          // Settings Gear
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppTheme.textSecondary, size: 22),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubtitleCard(ChatMessage? lastMsg) {
+    String captionText = 'ওর্ব-এ ট্যাপ করুন অথবা বলুন "হাই প্রিয়া"';
+    if (_listening) {
+      captionText = _inputController.text.isNotEmpty ? _inputController.text : 'আমি শুনছি সোনা, বলো... [giggles]';
+    } else if (_isThinking) {
+      captionText = 'একটু অপেক্ষা করো জান, কাজ করছি...';
+    } else if (lastMsg != null) {
+      captionText = lastMsg.text;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.obsidianCard.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppTheme.borderViolet.withValues(alpha: 0.8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            captionText,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _listening ? AppTheme.neonCyan : Colors.white.withValues(alpha: 0.95),
+              fontSize: 14.5,
+              fontWeight: FontWeight.w500,
+              height: 1.45,
+            ),
+          ),
+          if (_executor.isBusy && _executor.lastGoal.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.neonViolet.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Task: ${_executor.lastGoal}',
+                style: const TextStyle(color: AppTheme.neonPurpleLight, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomDock() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.obsidianElevated.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: AppTheme.borderViolet.withValues(alpha: 0.9)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 24,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // Keyboard Input Button
+              IconButton(
+                icon: const Icon(Icons.keyboard_outlined, color: AppTheme.textSecondary, size: 24),
+                tooltip: 'Type message',
+                onPressed: _showTextInputSheet,
+              ),
+
+              // Center Glowing Voice Orb Trigger
+              GestureDetector(
+                onTap: _toggleListening,
+                child: Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: _listening
+                          ? [AppTheme.neonCyan, AppTheme.neonViolet]
+                          : [AppTheme.neonViolet, AppTheme.neonMagenta],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_listening ? AppTheme.neonCyan : AppTheme.neonViolet).withValues(alpha: 0.45),
+                        blurRadius: 18,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    _listening ? Icons.mic : Icons.mic_none_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
-                child: Icon(
-                  _listening ? Icons.mic : Icons.mic_none_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
+              ),
+
+              // Macro Automation Quick Action
+              IconButton(
+                icon: const Icon(Icons.auto_awesome_outlined, color: AppTheme.neonCyan, size: 24),
+                tooltip: 'Run Macros',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const MacroCenterScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMayaDrawer() {
+    return Drawer(
+      backgroundColor: AppTheme.obsidianSurface,
+      child: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            // Drawer Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppTheme.borderViolet)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [AppTheme.neonCyan, AppTheme.neonViolet],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.neonViolet.withValues(alpha: 0.5),
+                          blurRadius: 12,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.blur_on_rounded, color: Colors.white, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Priya AI',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Maya Architecture v5.2',
+                        style: TextStyle(
+                          color: AppTheme.neonCyan,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(width: 6),
+            const SizedBox(height: 8),
 
-            // Send Button
-            IconButton.filled(
-              style: IconButton.styleFrom(
-                backgroundColor: AppTheme.purplePrimary,
-                shape: const CircleBorder(),
-                padding: const EdgeInsets.all(10),
-              ),
-              tooltip: isGenie ? 'Run task' : 'Send',
-              onPressed: _busy ? null : () => _submit(_inputController.text),
-              icon: const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 20),
+            // 1. Voice Hub (Live Orb)
+            _drawerItem(
+              icon: Icons.graphic_eq_rounded,
+              title: 'Voice Hub (Live Orb)',
+              subtitle: 'Centerpiece AI Voice Screen',
+              color: AppTheme.neonCyan,
+              onTap: () => Navigator.pop(context),
+            ),
+
+            // 2. Macro Automation Center
+            _drawerItem(
+              icon: Icons.auto_awesome,
+              title: 'Macro Center',
+              subtitle: 'Pre-trained App Automations',
+              color: AppTheme.neonViolet,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MacroCenterScreen()),
+                );
+              },
+            ),
+
+            // 3. Termux Terminal Reel
+            _drawerItem(
+              icon: Icons.terminal,
+              title: 'Terminal Reel',
+              subtitle: 'Termux Live Shell Output',
+              color: AppTheme.neonEmerald,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const TerminalReelScreen()),
+                );
+              },
+            ),
+
+            // 4. Accessibility Doctor
+            _drawerItem(
+              icon: Icons.healing_outlined,
+              title: 'Accessibility Doctor',
+              subtitle: 'One-Tap Fix & Service Monitor',
+              color: AppTheme.neonMagenta,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AccessibilityDoctorScreen()),
+                );
+              },
+            ),
+
+            // 5. Voice Persona Studio
+            _drawerItem(
+              icon: Icons.record_voice_over_outlined,
+              title: 'Voice Persona Studio',
+              subtitle: 'Maya, Friday & Venom Profiles',
+              color: AppTheme.warning,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PersonaStudioScreen()),
+                );
+              },
+            ),
+
+            // 6. Driving Mode (Hands-Free)
+            _drawerItem(
+              icon: Icons.directions_car_filled_outlined,
+              title: PriyaDrivingService.instance.isDrivingMode
+                  ? 'ড্রাইভিং মোড (চালু আছে)'
+                  : 'ড্রাইভিং মোড (হ্যান্ডস-ফ্রি)',
+              subtitle: 'হ্যান্ডস-ফ্রি অটো কল ও মেসেজ অ্যানাউন্সার',
+              color: PriyaDrivingService.instance.isDrivingMode
+                  ? AppTheme.neonEmerald
+                  : AppTheme.textSecondary,
+              onTap: () async {
+                Navigator.pop(context);
+                await PriyaDrivingService.instance.toggleDrivingMode();
+                if (mounted) setState(() {});
+              },
+            ),
+
+            const Divider(color: AppTheme.borderViolet, height: 28),
+
+            // 6. Session History
+            _drawerItem(
+              icon: Icons.history,
+              title: 'Task History',
+              subtitle: 'Past sessions & logs',
+              color: AppTheme.textSecondary,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const TaskHistoryScreen()),
+                );
+              },
+            ),
+
+            // 7. Settings
+            _drawerItem(
+              icon: Icons.settings,
+              title: 'Settings',
+              subtitle: 'LLMs, API Keys, Permissions',
+              color: AppTheme.textSecondary,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
             ),
           ],
         ),
@@ -686,41 +752,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// Genie (agent) / Chat mode switcher shown above the input bar.
-  Widget _modeSwitcher(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
-      child: SegmentedButton<AppMode>(
-        showSelectedIcon: false,
-        style: ButtonStyle(
-          visualDensity: VisualDensity.compact,
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return AppTheme.purplePrimary.withValues(alpha: 0.25);
-            }
-            return AppTheme.obsidianCard;
-          }),
+  Widget _drawerItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
-        segments: const [
-          ButtonSegment(
-            value: AppMode.chat,
-            icon: Icon(Icons.chat_bubble_outline, size: 16),
-            label: Text('💬 প্রিয়া চ্যাট', style: TextStyle(fontSize: 12)),
-          ),
-          ButtonSegment(
-            value: AppMode.genie,
-            icon: Icon(Icons.bolt_rounded, size: 16),
-            label: Text('⚡ ফোন অটোমেশন', style: TextStyle(fontSize: 12)),
-          ),
-        ],
-        selected: {_mode},
-        onSelectionChanged: _busy
-            ? null
-            : (selection) {
-                final mode = selection.first;
-                setState(() => _mode = mode);
-                SettingsService.instance.setAppMode(mode);
-              },
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14.5),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
       ),
     );
   }

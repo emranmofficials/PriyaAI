@@ -113,6 +113,12 @@ flutter:
     - assets/images/priya_icon.png
     - assets/images/priya_logo.png
     - assets/images/priya_banner.png
+    - assets/macros/builtin_macros.json
+    - assets/guardian/
+    - assets/dtln/
+    - assets/voices/
+    - assets/wakeword/
+    - assets/hasi/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -144,28 +144,37 @@ class _OverlayAppState extends State<OverlayApp> {
       child: GestureDetector(
         onTap: _expand,
         child: Container(
-          width: 72,
-          height: 72,
+          width: 76,
+          height: 76,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppTheme.magentaAccent, AppTheme.purplePrimary],
+            gradient: const RadialGradient(
+              colors: [
+                Colors.white,
+                AppTheme.neonCyan,
+                AppTheme.neonViolet,
+                Color(0xFF0F0826),
+              ],
+              stops: [0.0, 0.35, 0.75, 1.0],
             ),
-            border: Border.all(color: Colors.white24, width: 1.5),
+            border: Border.all(color: AppTheme.neonCyan.withValues(alpha: 0.8), width: 1.8),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.purplePrimary.withValues(alpha: 0.5),
+                color: AppTheme.neonCyan.withValues(alpha: 0.5),
                 blurRadius: 18,
-                spreadRadius: 1,
+                spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: AppTheme.neonViolet.withValues(alpha: 0.35),
+                blurRadius: 28,
+                spreadRadius: 4,
               ),
             ],
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
+              const Icon(Icons.blur_on_rounded, color: Colors.white, size: 36),
               if (running)
                 const Positioned(
                   top: 6,
@@ -175,7 +184,7 @@ class _OverlayAppState extends State<OverlayApp> {
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.4,
-                      color: Colors.white,
+                      color: AppTheme.neonEmerald,
                     ),
                   ),
                 ),
@@ -220,22 +229,22 @@ class _OverlayAppState extends State<OverlayApp> {
       padding: const EdgeInsets.fromLTRB(14, 10, 6, 6),
       child: Row(
         children: [
-          const Icon(Icons.favorite_rounded, size: 18, color: AppTheme.magentaAccent),
+          const Icon(Icons.blur_on_rounded, size: 20, color: AppTheme.neonCyan),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Priya AI',
+                const Text('Maya / Priya AI',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w800)),
                 Text(
                   _busy
-                      ? '${_state == 'paused' ? 'Paused' : 'Running'} — '
+                      ? '${_state == 'paused' ? 'Paused' : 'Executing Task'} — '
                           'step $_step/$_maxSteps'
-                      : 'Idle — ask me anything',
+                      : 'Live Standby — ready for commands',
                   style: const TextStyle(color: Colors.white54, fontSize: 10),
                 ),
               ],

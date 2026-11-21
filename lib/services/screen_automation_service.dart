@@ -8,11 +8,20 @@ import '../models/screen_node.dart';
 /// Also owns the text formatting that turns the raw node list into a compact,
 /// LLM-friendly screen description (minimizing token usage).
 class ScreenAutomationService {
-  ScreenAutomationService._();
+  ScreenAutomationService._() {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onWakeWordDetected') {
+        final word = (call.arguments as Map?)?['wakeWord']?.toString() ?? 'hey_priya';
+        onWakeWordDetected?.call(word);
+      }
+    });
+  }
   static final ScreenAutomationService instance = ScreenAutomationService._();
 
   static const MethodChannel _channel =
       MethodChannel('com.privateagent/accessibility');
+
+  void Function(String wakeWord)? onWakeWordDetected;
 
   List<ScreenNode> _lastNodes = const [];
 
@@ -141,6 +150,187 @@ class ScreenAutomationService {
   Future<bool> pressHome() => pressKey('home');
   Future<bool> pressEnter() => pressKey('enter');
   Future<bool> pressLock() => pressKey('lock');
+
+  // ------------------------------------------------------------------
+  // Declarative Macro Primitives (Matching Maya builtin_macros)
+  // ------------------------------------------------------------------
+
+  /// Directly taps UI node with [text] via native AccessibilityService traversal.
+  /// If [optional] is true, returns true even if the label is missing.
+  Future<bool> tapText(String text, {bool optional = false}) async {
+    try {
+      final res = await _channel.invokeMethod<bool>('tapText', {
+        'text': text,
+        'optional': optional,
+      });
+      return res ?? optional;
+    } catch (_) {
+      return optional;
+    }
+  }
+
+  /// Dynamic polling waiting for [text] to appear or disappear on screen.
+  Future<bool> waitForScreenText(
+    String text, {
+    String mode = 'appear',
+    int timeoutSeconds = 30,
+  }) async {
+    try {
+      final res = await _channel.invokeMethod<bool>('waitForScreenText', {
+        'text': text,
+        'mode': mode,
+        'timeoutSeconds': timeoutSeconds,
+      });
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Termux Execution Bridge (com.termux.permission.RUN_COMMAND)
+  // ------------------------------------------------------------------
+
+  Future<bool> isTermuxInstalled() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('isTermuxInstalled');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> executeTermuxCommand(
+    String command, {
+    String workDir = '/data/data/com.termux/files/home',
+    bool background = true,
+  }) async {
+    try {
+      final res = await _channel.invokeMapMethod<String, dynamic>(
+        'executeTermuxCommand',
+        {
+          'command': command,
+          'workDir': workDir,
+          'background': background,
+        },
+      );
+      return res ?? {'started': false};
+    } catch (e) {
+      return {'started': false, 'error': e.toString()};
+    }
+  }
+
+  Future<List<Map<dynamic, dynamic>>> getTermuxHistory() async {
+    try {
+      final res = await _channel.invokeListMethod<dynamic>('getTermuxHistory');
+      return res?.whereType<Map<dynamic, dynamic>>().toList() ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Notification Intelligence & Direct Reply
+  // ------------------------------------------------------------------
+
+  Future<bool> isNotificationListenerEnabled() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('isNotificationListenerEnabled');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> openNotificationListenerSettings() =>
+      _channel.invokeMethod<void>('openNotificationListenerSettings');
+
+  Future<List<Map<dynamic, dynamic>>> getRecentNotifications() async {
+    try {
+      final res = await _channel.invokeListMethod<dynamic>('getRecentNotifications');
+      return res?.whereType<Map<dynamic, dynamic>>().toList() ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<bool> sendDirectReply(String key, String replyText) async {
+    try {
+      final res = await _channel.invokeMethod<bool>('sendDirectReply', {
+        'key': key,
+        'replyText': replyText,
+      });
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Call Management & Audio Ducking
+  // ------------------------------------------------------------------
+
+  Future<bool> answerCall() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('answerCall');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> rejectCall() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('rejectCall');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> duckRinger() => _channel.invokeMethod<void>('duckRinger');
+
+  Future<void> restoreRinger() => _channel.invokeMethod<void>('restoreRinger');
+
+  // ------------------------------------------------------------------
+  // 24/7 Background Wake Word Detection
+  // ------------------------------------------------------------------
+
+  Future<bool> startWakeWordDetection() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('startWakeWordDetection');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> stopWakeWordDetection() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('stopWakeWordDetection');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> isWakeWordDetectionRunning() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('isWakeWordDetectionRunning');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> unlockScreen() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('unlockScreen');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 
   // ------------------------------------------------------------------
   // LLM-oriented formatting

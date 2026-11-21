@@ -25,6 +25,12 @@ class TaskStep {
   static const actionOpenApp = 'open_app';
   static const actionWait = 'wait';
   static const actionDone = 'done';
+  static const actionTapText = 'tap_text';
+  static const actionWaitForScreenText = 'wait_for_screen_text';
+  static const actionExecuteTermux = 'execute_termux';
+  static const actionAnswerCall = 'answer_call';
+  static const actionRejectCall = 'reject_call';
+  static const actionReplyNotification = 'reply_notification';
 
   static const supportedActions = <String>{
     actionClickText,
@@ -38,6 +44,12 @@ class TaskStep {
     actionOpenApp,
     actionWait,
     actionDone,
+    actionTapText,
+    actionWaitForScreenText,
+    actionExecuteTermux,
+    actionAnswerCall,
+    actionRejectCall,
+    actionReplyNotification,
   };
 
   final String action;
@@ -91,6 +103,13 @@ class TaskStep {
     if (v == null) return null;
     final s = v.toString();
     return s.isEmpty ? null : s;
+  }
+
+  bool? boolParam(String key) {
+    final v = params[key];
+    if (v is bool) return v;
+    if (v is String) return v.toLowerCase() == 'true';
+    return null;
   }
 
   /// Robustly extracts the first JSON object from raw LLM output, tolerating
