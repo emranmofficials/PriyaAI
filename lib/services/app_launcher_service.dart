@@ -79,4 +79,6 @@ class AppLauncherService {
       return null;
     }
   }
+
+  Future<String?> launchAppByName(String name) => launch(name);
 }

@@ -62,6 +62,7 @@ class TaskExecutor extends ChangeNotifier {
   bool get isPaused => state == ExecutorState.paused;
   bool get isBusy => state != ExecutorState.idle;
   String get lastGoal => currentGoal ?? '';
+  List<ChatMessage> get chatMessages => logs;
 
   /// Called when a task finishes so external integrations (Telegram) can
   /// push results back to the originating chat.
@@ -350,8 +351,8 @@ class TaskExecutor extends ChangeNotifier {
           },
         );
         if (ok) {
-          status = TaskStatus.completed;
-          _log(ChatMessage.assistant('ম্যাক্রো সফলভাবে সম্পন্ন হয়েছে সোনা! [happy]'));
+          status = TaskStatus.success;
+          _log(ChatMessage.agent('ম্যাক্রো সফলভাবে সম্পন্ন হয়েছে সোনা! [happy]'));
           return status;
         }
       }

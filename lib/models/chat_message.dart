@@ -35,6 +35,9 @@ class ChatMessage {
   factory ChatMessage.agent(String text, {int? step}) =>
       ChatMessage(role: ChatRole.agent, text: text, step: step, markdown: true);
 
+  factory ChatMessage.assistant(String text) =>
+      ChatMessage(role: ChatRole.agent, text: text, markdown: true);
+
   factory ChatMessage.system(String text) =>
       ChatMessage(role: ChatRole.system, text: text);
 
