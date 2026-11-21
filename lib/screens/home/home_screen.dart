@@ -16,11 +16,14 @@ import '../../theme/app_theme.dart';
 import '../../widgets/edge_glow.dart';
 import '../../widgets/maya_orb.dart';
 import '../accessibility/accessibility_doctor_screen.dart';
+import '../chat/live_chat_screen.dart';
 import '../macros/macro_center_screen.dart';
 import '../persona/persona_studio_screen.dart';
+import '../scanner/scanner_screen.dart';
 import '../settings/ai_setup_sheet.dart';
 import '../settings/settings_screen.dart';
 import '../terminal/terminal_reel_screen.dart';
+import '../yaadein/memories_screen.dart';
 
 /// Maya-style Voice & Automation Hub — 100% identical to Maya's signature UI.
 ///
@@ -511,20 +514,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               color: _overlayActive ? AppTheme.neonCyan : AppTheme.textSecondary,
               size: 22,
             ),
-            tooltip: 'Toggle Floating Orb',
+            tooltip: 'ভাসমান বাবল',
             onPressed: _toggleOverlay,
+          ),
+
+          // Live Chat Shortcut
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppTheme.neonCyan, size: 21),
+            tooltip: 'লাইভ চ্যাট',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LiveChatScreen()),
+              );
+            },
+          ),
+
+          // Scanner Shortcut
+          IconButton(
+            icon: const Icon(Icons.document_scanner_outlined, color: AppTheme.neonMagenta, size: 21),
+            tooltip: 'ভিশন স্ক্যানার',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ScannerScreen()),
+              );
+            },
           ),
 
           // Quick AI Brain / Key Setup
           IconButton(
-            icon: const Icon(Icons.vpn_key_outlined, color: AppTheme.neonCyan, size: 21),
-            tooltip: 'AI Brain Setup',
+            icon: const Icon(Icons.vpn_key_outlined, color: AppTheme.neonYellow, size: 21),
+            tooltip: 'AI Brain Key Setup',
             onPressed: () => AiSetupSheet.show(context),
           ),
 
           // Settings Gear
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: AppTheme.textSecondary, size: 22),
+            tooltip: 'সেটিংস',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -738,7 +764,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               icon: Icons.vpn_key_rounded,
               title: 'AI ব্রেন ও API Key সেটআপ',
               subtitle: 'Google Gemini, Groq, DeepSeek বা OpenAI',
-              color: AppTheme.neonMagenta,
+              color: AppTheme.neonYellow,
               onTap: () {
                 Navigator.pop(context);
                 AiSetupSheet.show(context);
@@ -748,17 +774,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             // 1. Voice Hub (Live Orb)
             _drawerItem(
               icon: Icons.graphic_eq_rounded,
-              title: 'Voice Hub (Live Orb)',
-              subtitle: 'Centerpiece AI Voice Screen',
+              title: 'ভয়েস হাব (Live Voice Orb)',
+              subtitle: 'মায়ার সেন্ট্রাল এআই ভয়েস ও স্পিচ হাব',
               color: AppTheme.neonCyan,
               onTap: () => Navigator.pop(context),
             ),
 
-            // 2. Macro Automation Center
+            // 2. Live Chat
+            _drawerItem(
+              icon: Icons.chat_bubble_outline_rounded,
+              title: 'মায়া লাইভ চ্যাট (Chat)',
+              subtitle: 'মিষ্টি বাংলা কথা, টেক্সট ও ভয়েস রিপ্লাই',
+              color: AppTheme.neonMagenta,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const LiveChatScreen()),
+                );
+              },
+            ),
+
+            // 3. Vision Scanner
+            _drawerItem(
+              icon: Icons.document_scanner_outlined,
+              title: 'ভিশন স্ক্যানার (Scanner)',
+              subtitle: 'স্ক্রিন পড়া, ক্যামেরা ভিশন ও QR স্ক্যান',
+              color: AppTheme.neonCyan,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ScannerScreen()),
+                );
+              },
+            ),
+
+            // 4. Yaadein (Memories)
+            _drawerItem(
+              icon: Icons.psychology_rounded,
+              title: 'মায়ার স্মৃতি (Yaadein)',
+              subtitle: 'আপনার পছন্দ, অভ্যাস ও মনে রাখা তথ্য',
+              color: AppTheme.warning,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MemoriesScreen()),
+                );
+              },
+            ),
+
+            // 5. Macro Automation Center
             _drawerItem(
               icon: Icons.auto_awesome,
-              title: 'Macro Center',
-              subtitle: 'Pre-trained App Automations',
+              title: 'ম্যাক্রো সেন্টার (Macros)',
+              subtitle: 'অ্যাপ অটোমেশন ও প্রি-ট্রেইন্ড রুটিন',
               color: AppTheme.neonViolet,
               onTap: () {
                 Navigator.pop(context);
@@ -768,11 +836,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               },
             ),
 
-            // 3. Termux Terminal Reel
+            // 6. Termux Terminal Reel
             _drawerItem(
               icon: Icons.terminal,
-              title: 'Terminal Reel',
-              subtitle: 'Termux Live Shell Output',
+              title: 'টার্মিনাল রিল (Termux)',
+              subtitle: 'টার্মাক্স লাইভ শেল ও কমান্ড আউটপুট',
               color: AppTheme.neonEmerald,
               onTap: () {
                 Navigator.pop(context);
@@ -782,11 +850,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               },
             ),
 
-            // 4. Accessibility Doctor
+            // 7. Accessibility Doctor
             _drawerItem(
               icon: Icons.healing_outlined,
-              title: 'Accessibility Doctor',
-              subtitle: 'One-Tap Fix & Service Monitor',
+              title: 'এক্সেসিবিলিটি ডক্টর',
+              subtitle: '১-ট্যাপ অটো ফিক্স ও সার্ভিস মনিটর',
               color: AppTheme.neonMagenta,
               onTap: () {
                 Navigator.pop(context);
@@ -796,11 +864,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               },
             ),
 
-            // 5. Voice Persona Studio
+            // 8. Voice Persona Studio
             _drawerItem(
               icon: Icons.record_voice_over_outlined,
-              title: 'Voice Persona Studio',
-              subtitle: 'Maya, Friday & Venom Profiles',
+              title: 'ভয়েস পার্সোনা স্টুডিও',
+              subtitle: 'Priya, Maya, Friday ও ১৩টি অ্যাকোস্টিক ভয়েস',
               color: AppTheme.warning,
               onTap: () {
                 Navigator.pop(context);
@@ -810,7 +878,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               },
             ),
 
-            // 6. Driving Mode (Hands-Free)
+            // 9. Driving Mode (Hands-Free)
             _drawerItem(
               icon: Icons.directions_car_filled_outlined,
               title: PriyaDrivingService.instance.isDrivingMode
@@ -829,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
             const Divider(color: AppTheme.borderViolet, height: 28),
 
-            // 7. Maya Settings Hub
+            // 10. Maya Settings Hub
             _drawerItem(
               icon: Icons.settings_suggest_rounded,
               title: 'মায়া সেটিংস হাব (Settings Hub)',
