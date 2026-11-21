@@ -88,7 +88,7 @@ class AppTheme {
           letterSpacing: 0.5,
         ),
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: obsidianElevated,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),

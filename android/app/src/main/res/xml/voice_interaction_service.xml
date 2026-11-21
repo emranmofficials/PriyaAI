@@ -2,4 +2,4 @@
 <voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:sessionService="com.privateagent.private_agent.PriyaVoiceInteractionSessionService"
     android:supportsAssist="true"
-    android:supportsVoiceInteraction="true" />
+    android:supportsLocalInteraction="true" />

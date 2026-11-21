@@ -244,6 +244,10 @@ class VoiceService extends ChangeNotifier {
     return (text, emotion);
   }
 
+  Future<void> testPriyaVoice() async {
+    await speak('হাঁ বাবু, আমি প্রিয়া! আমি সবসময় তোমার সাথে আছি।');
+  }
+
   Future<void> speak(String rawText) async {
     final (clean, emotion) = _extractEmotionAndClean(rawText);
     if (clean.isEmpty) return;

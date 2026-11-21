@@ -61,6 +61,7 @@ class TaskExecutor extends ChangeNotifier {
   bool get isRunning => state == ExecutorState.running;
   bool get isPaused => state == ExecutorState.paused;
   bool get isBusy => state != ExecutorState.idle;
+  String get lastGoal => currentGoal ?? '';
 
   /// Called when a task finishes so external integrations (Telegram) can
   /// push results back to the originating chat.
