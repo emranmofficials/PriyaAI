@@ -91,7 +91,7 @@ class SettingsService extends ChangeNotifier {
     'custom': (label: 'Custom (OpenAI-compatible)', baseUrl: '', model: ''),
   };
 
-  String get provider => _prefs?.getString('ai_provider') ?? 'ollama';
+  String get provider => _prefs?.getString('ai_provider') ?? 'gemini';
   Future<void> setProvider(String value) async {
     await _prefs?.setString('ai_provider', value);
     final preset = providers[value];
@@ -105,7 +105,7 @@ class SettingsService extends ChangeNotifier {
   String get baseUrl =>
       _prefs?.getString('ai_base_url') ??
       providers[provider]?.baseUrl ??
-      providers['ollama']!.baseUrl;
+      providers['gemini']!.baseUrl;
   Future<void> setBaseUrl(String value) async {
     await _prefs?.setString('ai_base_url', value.trim());
     notifyListeners();
