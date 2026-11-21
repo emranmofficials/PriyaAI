@@ -18,6 +18,7 @@ import '../accessibility/accessibility_doctor_screen.dart';
 import '../history/task_history_screen.dart';
 import '../macros/macro_center_screen.dart';
 import '../persona/persona_studio_screen.dart';
+import '../settings/ai_setup_sheet.dart';
 import '../settings/settings_screen.dart';
 import '../terminal/terminal_reel_screen.dart';
 
@@ -64,6 +65,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     };
     _refreshStates();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final settings = SettingsService.instance;
+      if (settings.apiKey.trim().isEmpty && settings.provider != 'ollama') {
+        AiSetupSheet.show(context);
+      }
+    });
   }
 
   @override
@@ -133,6 +141,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _toggleListening() async {
+    final settings = SettingsService.instance;
+    if (settings.apiKey.trim().isEmpty && settings.provider != 'ollama') {
+      await _voice.speak('বাবু, কথা বলার জন্য প্রথমে একটি এআই এপিআই কী সেট করে নাও!');
+      if (mounted) {
+        AiSetupSheet.show(context);
+      }
+      return;
+    }
+
     if (_voice.isSpeaking) {
       await _voice.stopSpeaking();
     }
@@ -299,6 +316,78 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           children: [
                             const SizedBox(height: 10),
 
+                            // Glowing AI Setup Banner if no API key is present
+                            if (SettingsService.instance.apiKey.trim().isEmpty &&
+                                SettingsService.instance.provider != 'ollama') ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                child: GestureDetector(
+                                  onTap: () => AiSetupSheet.show(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppTheme.neonMagenta.withValues(alpha: 0.25),
+                                          AppTheme.neonViolet.withValues(alpha: 0.25),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: AppTheme.neonMagenta.withValues(alpha: 0.8),
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.neonMagenta.withValues(alpha: 0.35),
+                                          blurRadius: 16,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.vpn_key_rounded, color: AppTheme.neonMagenta, size: 24),
+                                        const SizedBox(width: 12),
+                                        const Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'AI ব্রেন সেটআপ করুন 🔑',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(
+                                                'মায়ার মতো প্রিয়ার বুদ্ধি সচল করতে Gemini বা Groq কী দিন',
+                                                style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.5),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.neonMagenta,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Text(
+                                            'সেটআপ',
+                                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+
                             // The Signature Maya HUD Orb
                             MayaOrb(
                               size: 240,
@@ -422,6 +511,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
             tooltip: 'Toggle Floating Orb',
             onPressed: _toggleOverlay,
+          ),
+
+          // Quick AI Brain / Key Setup
+          IconButton(
+            icon: const Icon(Icons.vpn_key_outlined, color: AppTheme.neonCyan, size: 21),
+            tooltip: 'AI Brain Setup',
+            onPressed: () => AiSetupSheet.show(context),
           ),
 
           // Settings Gear
@@ -634,6 +730,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
 
             const SizedBox(height: 8),
+
+            // 0. AI Brain & Key Setup
+            _drawerItem(
+              icon: Icons.vpn_key_rounded,
+              title: 'AI ব্রেন ও API Key সেটআপ',
+              subtitle: 'Google Gemini, Groq, DeepSeek বা OpenAI',
+              color: AppTheme.neonMagenta,
+              onTap: () {
+                Navigator.pop(context);
+                AiSetupSheet.show(context);
+              },
+            ),
 
             // 1. Voice Hub (Live Orb)
             _drawerItem(
