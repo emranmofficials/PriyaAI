@@ -64,6 +64,11 @@ class TaskExecutor extends ChangeNotifier {
   String get lastGoal => currentGoal ?? '';
   List<ChatMessage> get chatMessages => logs;
 
+  void clearLogs() {
+    logs.clear();
+    notifyListeners();
+  }
+
   /// Called when a task finishes so external integrations (Telegram) can
   /// push results back to the originating chat.
   void Function(String chatId, TaskHistoryEntry entry)? onTaskFinished;

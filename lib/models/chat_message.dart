@@ -44,6 +44,10 @@ class ChatMessage {
   factory ChatMessage.error(String text) =>
       ChatMessage(role: ChatRole.error, text: text);
 
+  /// Convenience getters for chat screens
+  bool get isUser => role == ChatRole.user;
+  String get content => text;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'role': role.name,

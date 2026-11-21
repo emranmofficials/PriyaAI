@@ -95,9 +95,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              setState(() {
-                _executor.chatMessages.clear();
-              });
+              _executor.clearLogs();
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
             child: const Text('মুছে ফেলুন', style: TextStyle(color: Colors.white)),
