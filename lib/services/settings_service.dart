@@ -66,7 +66,7 @@ class SettingsService extends ChangeNotifier {
     'gemini': (
       label: 'Google Gemini',
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3.8-flash',
     ),
     'groq': (
       label: 'Groq (Ultra-Fast & Free)',
@@ -117,10 +117,16 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
-  String get model =>
-      _prefs?.getString('ai_model') ??
-      providers[provider]?.model ??
-      'qwen2.5:0.5b';
+  String get model {
+    final stored = _prefs?.getString('ai_model');
+    if (stored != null &&
+        stored.isNotEmpty &&
+        stored != 'gemini-2.0-flash' &&
+        stored != 'gemini-1.5-flash') {
+      return stored;
+    }
+    return providers[provider]?.model ?? 'gemini-3.8-flash';
+  }
   Future<void> setModel(String value) async {
     await _prefs?.setString('ai_model', value.trim());
     notifyListeners();

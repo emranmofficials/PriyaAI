@@ -44,7 +44,7 @@ class _AiSetupSheetState extends State<AiSetupSheet> {
       name: 'Google Gemini',
       badge: 'ফ্রি ও দ্রুততম (Recommended)',
       keyUrl: 'https://aistudio.google.com/apikey',
-      defaultModel: 'gemini-2.0-flash',
+      defaultModel: 'gemini-3.8-flash',
       hint: 'AIzaSy... দিয়ে শুরু হওয়া কী দিন',
       icon: Icons.auto_awesome,
     ),
@@ -93,7 +93,7 @@ class _AiSetupSheetState extends State<AiSetupSheet> {
     _modelController = TextEditingController(text: _settings.model);
 
     if (_modelController.text.trim().isEmpty) {
-      _modelController.text = _providerMeta[_selectedProvider]?.defaultModel ?? 'gemini-2.0-flash';
+      _modelController.text = _providerMeta[_selectedProvider]?.defaultModel ?? 'gemini-3.8-flash';
     }
   }
 
@@ -124,7 +124,7 @@ class _AiSetupSheetState extends State<AiSetupSheet> {
         // Auto-detect provider
         if (text.startsWith('AIzaSy')) {
           _selectedProvider = 'gemini';
-          _modelController.text = 'gemini-2.0-flash';
+          _modelController.text = 'gemini-3.8-flash';
         } else if (text.startsWith('gsk_')) {
           _selectedProvider = 'groq';
           _modelController.text = 'llama-3.3-70b-versatile';

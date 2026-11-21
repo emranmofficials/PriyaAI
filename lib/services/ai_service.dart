@@ -235,15 +235,19 @@ Stay completely in character at all times. Never say you are an AI assistant or 
     }
 
     var model = settings.model.trim();
-    if (model.isEmpty) {
-      model = 'gemini-2.0-flash';
+    if (model.isEmpty || model == 'gemini-2.0-flash' || model == 'gemini-1.5-flash') {
+      model = 'gemini-3.8-flash';
     }
     // Strip redundant models/ prefix if entered
     model = model.replaceFirst(RegExp(r'^models/'), '');
 
-    final uri = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$key',
-    );
+    final candidateModels = [
+      model,
+      'gemini-3.8-flash',
+      'gemini-2.5-flash',
+      'gemini-1.5-flash',
+      'gemini-flash',
+    ].toSet().toList();
 
     String? systemInstruction;
     final contents = <Map<String, dynamic>>[];
@@ -294,15 +298,47 @@ Stay completely in character at all times. Never say you are an AI assistant or 
       'x-goog-api-key': key,
     };
 
-    http.Response res;
-    try {
-      res = await _client
-          .post(uri, headers: headers, body: jsonEncode(body))
-          .timeout(const Duration(seconds: 60));
-    } on TimeoutException {
-      throw const AiException('Gemini সার্ভার থেকে ৬০ সেকেন্ডে কোনো উত্তর আসেনি (Timeout)।');
-    } catch (e) {
-      throw AiException('Gemini নেটওয়ার্ক এরর: $e');
+    http.Response? res;
+    String lastNetworkErr = '';
+
+    for (final candidate in candidateModels) {
+      final uri = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/$candidate:generateContent?key=$key',
+      );
+
+      try {
+        final r = await _client
+            .post(uri, headers: headers, body: jsonEncode(body))
+            .timeout(const Duration(seconds: 45));
+
+        res = r;
+        if (r.statusCode == 200) {
+          if (candidate != settings.model) {
+            unawaited(settings.setModel(candidate));
+          }
+          break;
+        }
+
+        // Check if model not found / deprecated to try fallback
+        final bodyStr = utf8.decode(r.bodyBytes);
+        if (r.statusCode == 404 ||
+            bodyStr.contains('no longer available') ||
+            bodyStr.contains('not found')) {
+          continue;
+        } else {
+          // Other error (e.g. 400 Invalid Key), stop retrying
+          break;
+        }
+      } on TimeoutException {
+        continue;
+      } catch (e) {
+        lastNetworkErr = '$e';
+        continue;
+      }
+    }
+
+    if (res == null) {
+      throw AiException('Gemini নেটওয়ার্ক এরর: $lastNetworkErr');
     }
 
     if (res.statusCode != 200) {
