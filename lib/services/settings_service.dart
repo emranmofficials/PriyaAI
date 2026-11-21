@@ -316,6 +316,16 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Owner name or nickname (e.g., 'বাবু')
+  String get ownerName => _prefs?.getString('owner_name') ?? 'বাবু';
+  Future<void> setOwnerName(String value) async {
+    await _prefs?.setString('owner_name', value.trim());
+    notifyListeners();
+  }
+
+  /// Alias for active persona
+  String get selectedPersona => activePersona;
+
   /// Girlfriend persona mode: caring, sweet, affectionate and protective.
   bool get girlfriendMode => _prefs?.getBool('persona_girlfriend_mode') ?? true;
   Future<void> setGirlfriendMode(bool value) async {

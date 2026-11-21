@@ -227,7 +227,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                           backgroundColor: AppTheme.neonCyan,
                           foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangle.circular(12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 4,
                         ),
                       ),

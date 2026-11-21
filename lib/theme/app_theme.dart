@@ -21,6 +21,7 @@ class AppTheme {
   static const neonPurpleLight = Color(0xFFC084FC);
   static const neonMagenta = Color(0xFFFF2A85);
   static const neonEmerald = Color(0xFF00F5D4);
+  static const neonYellow = Color(0xFFFFD600);
   static const electricBlue = Color(0xFF2563EB);
 
   // Status & Feedback

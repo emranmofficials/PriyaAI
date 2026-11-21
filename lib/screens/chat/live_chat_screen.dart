@@ -203,7 +203,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                       ),
                       backgroundColor: const Color(0xFF141828),
                       side: BorderSide(color: AppTheme.neonCyan.withValues(alpha: 0.3)),
-                      shape: RoundedRectangle.circular(20),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       onPressed: () => _sendMessage(_quickSuggestions[i]),
                     );
                   },

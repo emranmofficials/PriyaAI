@@ -85,6 +85,9 @@ class ScreenAutomationService {
     }
   }
 
+  /// Alias for taking a screenshot
+  Future<String?> takeScreenshot() => takeScreenshotBase64();
+
   // ------------------------------------------------------------------
   // Actions
   // ------------------------------------------------------------------

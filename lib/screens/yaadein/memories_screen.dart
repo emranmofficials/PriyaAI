@@ -48,7 +48,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF151824),
-          shape: RoundedRectangle.circular(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.psychology_rounded, color: AppTheme.neonCyan),
