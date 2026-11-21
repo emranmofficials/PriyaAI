@@ -15,7 +15,6 @@ import '../../theme/app_theme.dart';
 import '../../widgets/edge_glow.dart';
 import '../../widgets/maya_orb.dart';
 import '../accessibility/accessibility_doctor_screen.dart';
-import '../history/task_history_screen.dart';
 import '../macros/macro_center_screen.dart';
 import '../persona/persona_studio_screen.dart';
 import '../settings/ai_setup_sheet.dart';
@@ -133,7 +132,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
-    if (settings.appMode == AppMode.genie) {
+    // Maya Unified Flow: Check macro fast path or conversational assistant
+    final macro = MacroRunnerService.instance.findMatchingMacro(goal);
+    if (macro != null) {
       _executor.executeTask(goal);
     } else {
       _executor.sendChatMessage(goal, spoke: spoke);
@@ -827,26 +828,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
             const Divider(color: AppTheme.borderViolet, height: 28),
 
-            // 6. Session History
+            // 7. Maya Settings Hub
             _drawerItem(
-              icon: Icons.history,
-              title: 'Task History',
-              subtitle: 'Past sessions & logs',
-              color: AppTheme.textSecondary,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const TaskHistoryScreen()),
-                );
-              },
-            ),
-
-            // 7. Settings
-            _drawerItem(
-              icon: Icons.settings,
-              title: 'Settings',
-              subtitle: 'LLMs, API Keys, Permissions',
-              color: AppTheme.textSecondary,
+              icon: Icons.settings_suggest_rounded,
+              title: 'মায়া সেটিংস হাব (Settings Hub)',
+              subtitle: 'AI Brain, Voice, Romance & System',
+              color: AppTheme.neonCyan,
               onTap: () {
                 Navigator.pop(context);
                 Navigator.of(context).push(

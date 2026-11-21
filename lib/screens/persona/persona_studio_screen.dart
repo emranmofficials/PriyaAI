@@ -178,8 +178,73 @@ class _PersonaStudioScreenState extends State<PersonaStudioScreen> {
               ),
             );
           }),
+
+          const SizedBox(height: 24),
+          const Text(
+            'Maya Acoustic Tones (১৩টি কণ্ঠের ধরণ)',
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.obsidianElevated,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.borderViolet),
+            ),
+            child: Column(
+              children: [
+                for (final tone in _mayaVoiceTones) ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.neonViolet.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.graphic_eq_rounded, color: AppTheme.neonViolet, size: 20),
+                    ),
+                    title: Text(tone['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text(tone['tone']!, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.play_circle_outline_rounded, color: AppTheme.neonCyan, size: 24),
+                      onPressed: () {
+                        VoiceService.instance.speak('[happy] আমি ${tone['name']}, তোমার সাথে সবসময় মিষ্টি করে কথা বলব বাবু!');
+                      },
+                    ),
+                  ),
+                  if (tone != _mayaVoiceTones.last)
+                    const Divider(height: 12, color: AppTheme.borderViolet),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
+
+  static const List<Map<String, String>> _mayaVoiceTones = [
+    {'name': 'Zephyr', 'tone': 'Sweet, romantic & affectionate (ডিফল্ট)', 'file': 'maya_Zephyr.ogg'},
+    {'name': 'Aoede', 'tone': 'Warm, gentle & affectionate', 'file': 'maya_Aoede.ogg'},
+    {'name': 'Despina', 'tone': 'Breezy, soft & tender', 'file': 'maya_Despina.ogg'},
+    {'name': 'Callirrhoe', 'tone': 'Clear, playful & casual', 'file': 'maya_Callirrhoe.ogg'},
+    {'name': 'Kore', 'tone': 'Lively, youthful & cute', 'file': 'maya_Kore.ogg'},
+    {'name': 'Vindemiatrix', 'tone': 'Bright, cheerful & upbeat', 'file': 'maya_Vindemiatrix.ogg'},
+    {'name': 'Sulafat', 'tone': 'Mature, smooth & calm', 'file': 'maya_Sulafat.ogg'},
+    {'name': 'Autonoe', 'tone': 'Excitable & animated', 'file': 'maya_Autonoe.ogg'},
+    {'name': 'Erinome', 'tone': 'Shy, breathy & whispery', 'file': 'maya_Erinome.ogg'},
+    {'name': 'Pulcherrima', 'tone': 'Firm, confident & loyal', 'file': 'maya_Pulcherrima.ogg'},
+    {'name': 'Laomedeia', 'tone': 'Intimate & softly spoken', 'file': 'maya_Laomedeia.ogg'},
+    {'name': 'Gacrux', 'tone': 'Informative & clear', 'file': 'maya_Gacrux.ogg'},
+    {'name': 'Leda', 'tone': 'Friendly & easy-going', 'file': 'maya_Leda.ogg'},
+  ];
 }
